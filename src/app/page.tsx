@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { createWorker } from 'tesseract.js';
 import { applyDonate, canScan, consumeOne, loadQuota, saveQuota, type QuotaState } from '@/lib/quota';
+import { loadPrefs, savePrefs, type Prefs } from '@/lib/prefs';
 
 type Parsed = {
   mode: 'no' | 'iban' | 'generic';
@@ -100,6 +101,7 @@ export default function Home() {
   const [file, setFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
   const [resp, setResp] = useState<Resp | null>(null);
+  const [prefs, setPrefs] = useState<Prefs>({ preset: 'auto', lang: 'auto' });
 
   // Camera (preview) – only secure contexts
   const videoRef = useRef<HTMLVideoElement | null>(null);
@@ -111,6 +113,7 @@ export default function Home() {
   useEffect(() => {
     setMounted(true);
     setQuota(loadQuota());
+    setPrefs(loadPrefs());
     // Camera preview requires secure context (https/localhost) and getUserMedia.
     setCanUseCamera(Boolean((window as any).isSecureContext && navigator.mediaDevices?.getUserMedia));
   }, []);
@@ -119,6 +122,11 @@ export default function Home() {
     if (!quota) return;
     saveQuota(quota);
   }, [quota]);
+
+  useEffect(() => {
+    if (!mounted) return;
+    savePrefs(prefs);
+  }, [mounted, prefs]);
 
   useEffect(() => {
     return () => {
@@ -182,6 +190,8 @@ export default function Home() {
       const scaled = await downscaleToJpeg(file, 1600);
       const fd = new FormData();
       fd.append('file', scaled);
+      fd.append('preset', prefs.preset);
+      fd.append('lang', prefs.lang);
 
       const r = await fetch('/api/scan', { method: 'POST', body: fd });
       const data = (await r.json()) as any;
@@ -281,6 +291,37 @@ export default function Home() {
           <button className="px-3 py-2 border rounded" onClick={donate} disabled={!quota || quota.donatedToday}>
             {quota?.donatedToday ? 'Donated today (+10 applied)' : 'I donated (+10 scans)'}
           </button>
+        </div>
+
+        <div className="mt-3 flex flex-wrap gap-3 items-center text-sm">
+          <label className="flex items-center gap-2">
+            <span className="text-gray-600">Preset</span>
+            <select
+              className="border rounded px-2 py-1"
+              value={prefs.preset}
+              onChange={(e) => setPrefs((p) => ({ ...p, preset: e.target.value as any }))}
+            >
+              <option value="auto">Auto</option>
+              <option value="no">Norway (KID + konto)</option>
+              <option value="iban">IBAN</option>
+              <option value="generic">Generic</option>
+            </select>
+          </label>
+
+          <label className="flex items-center gap-2">
+            <span className="text-gray-600">Language</span>
+            <select
+              className="border rounded px-2 py-1"
+              value={prefs.lang}
+              onChange={(e) => setPrefs((p) => ({ ...p, lang: e.target.value as any }))}
+            >
+              <option value="auto">Auto</option>
+              <option value="no">Norwegian</option>
+              <option value="en">English</option>
+            </select>
+          </label>
+
+          <span className="text-gray-500">(saved in this browser)</span>
         </div>
 
         {resp && !resp.ok ? <div className="mt-3 text-sm text-red-600">{resp.message}</div> : null}

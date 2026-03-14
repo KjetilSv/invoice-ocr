@@ -53,13 +53,35 @@ export async function POST(req: Request) {
     }
 
     const model = String(form.get('model') || 'openrouter/auto');
+    const preset = String(form.get('preset') || 'auto');
+    const lang = String(form.get('lang') || 'auto');
 
     const bytes = Buffer.from(await file.arrayBuffer());
     const mime = file.type || 'image/jpeg';
     const dataUrl = `data:${mime};base64,${bytes.toString('base64')}`;
 
+    const langHint =
+      lang === 'no'
+        ? 'Language hint: Norwegian.'
+        : lang === 'en'
+          ? 'Language hint: English.'
+          : 'Language hint: auto.';
+
+    const presetHint =
+      preset === 'no'
+        ? 'Preset: Norway — prioritize KID (digits only) + Norwegian account number (11 digits).'
+        : preset === 'iban'
+          ? 'Preset: IBAN — prioritize IBAN + BIC/SWIFT + reference.'
+          : preset === 'generic'
+            ? 'Preset: Generic — prioritize reference/invoice number + amount + due date.'
+            : 'Preset: Auto — choose best mode.';
+
     const system =
-      'You extract payment details from invoices. Return ONLY valid JSON with keys: ' +
+      'You extract payment details from invoices. ' +
+      langHint +
+      ' ' +
+      presetHint +
+      ' Return ONLY valid JSON with keys: ' +
       'mode, kid, konto, iban, bic, reference, amount, dueDate, notes. ' +
       "mode must be one of: 'no' (Norway KID/konto), 'iban', 'generic'. " +
       'kid/konto must be digits only (strip spaces/dots), or null. ' +
