@@ -2,7 +2,7 @@ export type QuotaState = {
   day: string; // YYYY-MM-DD (local)
   freeLeft: number; // starts at 3/day
   bonusLeft: number; // donate credits
-  donatedToday: boolean;
+  donatedToday: boolean; // legacy flag (MVP button). Not used for crypto-based top-ups.
 };
 
 const KEY = 'invoiceocr_quota_v1';
@@ -55,5 +55,11 @@ export function applyDonate(q: QuotaState): QuotaState {
     next.bonusLeft += 10;
     next.donatedToday = true;
   }
+  return next;
+}
+
+export function addBonus(q: QuotaState, n: number): QuotaState {
+  const next = { ...q };
+  next.bonusLeft += Math.max(0, Math.floor(n));
   return next;
 }

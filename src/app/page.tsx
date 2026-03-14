@@ -2,8 +2,16 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { createWorker } from 'tesseract.js';
-import { applyDonate, canScan, consumeOne, loadQuota, saveQuota, type QuotaState } from '@/lib/quota';
+import { addBonus, applyDonate, canScan, consumeOne, loadQuota, saveQuota, type QuotaState } from '@/lib/quota';
 import { loadPrefs, savePrefs, type Prefs } from '@/lib/prefs';
+import {
+  addUsedTxid,
+  isTxidUsed,
+  loadDonations,
+  saveDonations,
+  type DonateChain,
+  type DonationRecord,
+} from '@/lib/donations';
 
 type Parsed = {
   mode: 'no' | 'iban' | 'generic';
@@ -102,6 +110,10 @@ export default function Home() {
   const [loading, setLoading] = useState(false);
   const [resp, setResp] = useState<Resp | null>(null);
   const [prefs, setPrefs] = useState<Prefs>({ preset: 'auto', lang: 'auto' });
+  const [donations, setDonations] = useState<DonationRecord | null>(null);
+  const [donateChain, setDonateChain] = useState<DonateChain>('avax');
+  const [donateTxid, setDonateTxid] = useState('');
+
   const uiLang = useMemo(() => {
     if (prefs.lang === 'no' || prefs.lang === 'en') return prefs.lang;
     const nav = (typeof navigator !== 'undefined' && navigator.language) || 'en';
@@ -135,6 +147,17 @@ export default function Home() {
       copyDue: 'Kopier forfall',
       rawText: 'Raw text',
       scansNone: 'Ingen scans igjen i dag. Doner for +10 scans.',
+      donateCryptoTitle: 'Doner med crypto (MVP)',
+      donateChain: 'Chain',
+      donateAddress: 'Adresse',
+      copyAddress: 'Kopier adresse',
+      txid: 'Txid',
+      applyTxid: 'Gi meg +10 scans',
+      txidUsed: 'Denne txid-en er allerede brukt i dag.',
+      txidMissing: 'Lim inn txid først.',
+      donateNote:
+        'Dette er MVP: vi verifiserer ikke on-chain ennå. Vi bruker txid som en enkel “kupong” og blokkerer gjenbruk samme dag.',
+      added10: '+10 scans lagt til',
     };
     const en = {
       chooseImage: 'Choose image',
@@ -160,6 +183,17 @@ export default function Home() {
       copyDue: 'Copy due date',
       rawText: 'Raw text',
       scansNone: 'No scans left today. Donate to get +10 scans.',
+      donateCryptoTitle: 'Donate with crypto (MVP)',
+      donateChain: 'Chain',
+      donateAddress: 'Address',
+      copyAddress: 'Copy address',
+      txid: 'Txid',
+      applyTxid: 'Give me +10 scans',
+      txidUsed: 'This txid was already used today.',
+      txidMissing: 'Paste a txid first.',
+      donateNote:
+        "MVP: we don't verify on-chain yet. We use the txid as a simple coupon and block re-use on the same day.",
+      added10: '+10 scans added',
     };
     return uiLang === 'no' ? no : en;
   }, [uiLang]);
@@ -175,6 +209,7 @@ export default function Home() {
     setMounted(true);
     setQuota(loadQuota());
     setPrefs(loadPrefs());
+    setDonations(loadDonations());
     // Camera preview requires secure context (https/localhost) and getUserMedia.
     setCanUseCamera(Boolean((window as any).isSecureContext && navigator.mediaDevices?.getUserMedia));
   }, []);
@@ -188,6 +223,11 @@ export default function Home() {
     if (!mounted) return;
     savePrefs(prefs);
   }, [mounted, prefs]);
+
+  useEffect(() => {
+    if (!mounted || !donations) return;
+    saveDonations(donations);
+  }, [mounted, donations]);
 
   useEffect(() => {
     return () => {
@@ -290,8 +330,53 @@ export default function Home() {
   }
 
   function donate() {
+    // legacy honor button (kept for quick local testing)
     if (!quota) return;
     setQuota(applyDonate(quota));
+  }
+
+  const donateAddr = useMemo(() => {
+    const avax = '0xab272ADCc18534a52474979aC6a6AF237553FA0e';
+    const dfk = '0xab272ADCc18534a52474979aC6a6AF237553FA0e';
+    // NOTE: Solana addresses are NOT 0x…; user must provide a real base58 address later.
+    const sol = '0xab272ADCc18534a52474979aC6a6AF237553FA0e';
+    return donateChain === 'avax' ? avax : donateChain === 'dfk' ? dfk : sol;
+  }, [donateChain]);
+
+  function explorerTxUrl(chain: DonateChain, txid: string) {
+    const t = txid.trim();
+    if (!t) return null;
+    if (chain === 'sol') return `https://solscan.io/tx/${encodeURIComponent(t)}`;
+    if (chain === 'dfk') return `https://explorer.dfkchain.com/tx/${encodeURIComponent(t)}`;
+    return `https://snowtrace.io/tx/${encodeURIComponent(t)}`;
+  }
+
+  async function copyText(s: string) {
+    try {
+      await navigator.clipboard.writeText(s);
+    } catch {
+      // ignore
+    }
+  }
+
+  const [notice, setNotice] = useState<string | null>(null);
+
+  function applyCryptoTxid() {
+    if (!quota || !donations) return;
+    const txid = donateTxid.trim();
+    if (!txid) {
+      setNotice(t.txidMissing);
+      return;
+    }
+    if (isTxidUsed(donations, donateChain, txid)) {
+      setNotice(t.txidUsed);
+      return;
+    }
+
+    setDonations(addUsedTxid(donations, donateChain, txid));
+    setQuota(addBonus(quota, 10));
+    setDonateTxid('');
+    setNotice(t.added10);
   }
 
   return (
@@ -399,7 +484,7 @@ export default function Home() {
           <label className="flex items-center gap-2">
             <span className="text-gray-600">{t.preset}</span>
             <select
-              className="border rounded px-2 py-1"
+              className="border rounded px-2 py-1 bg-white"
               value={prefs.preset}
               onChange={(e) => setPrefs((p) => ({ ...p, preset: e.target.value as any }))}
             >
@@ -413,7 +498,7 @@ export default function Home() {
           <label className="flex items-center gap-2">
             <span className="text-gray-600">{t.language}</span>
             <select
-              className="border rounded px-2 py-1"
+              className="border rounded px-2 py-1 bg-white"
               value={prefs.lang}
               onChange={(e) => setPrefs((p) => ({ ...p, lang: e.target.value as any }))}
             >
@@ -424,6 +509,68 @@ export default function Home() {
           </label>
 
           <span className="text-gray-500">{t.saved}</span>
+        </div>
+
+        <div className="mt-4 p-4 rounded-xl border bg-white">
+          <div className="font-medium">{t.donateCryptoTitle}</div>
+          <div className="mt-2 flex flex-wrap items-center gap-3 text-sm">
+            <label className="flex items-center gap-2">
+              <span className="text-gray-600">{t.donateChain}</span>
+              <select
+                className="border rounded px-2 py-1 bg-white"
+                value={donateChain}
+                onChange={(e) => setDonateChain(e.target.value as any)}
+              >
+                <option value="sol">SOL</option>
+                <option value="avax">AVAX</option>
+                <option value="dfk">DFK Chain</option>
+              </select>
+            </label>
+
+            <div className="text-gray-600">{t.donateAddress}:</div>
+            <code className="text-xs bg-gray-50 border rounded px-2 py-1">{donateAddr}</code>
+            <button
+              className="px-3 py-1.5 rounded-lg bg-gray-100 border hover:bg-gray-200"
+              onClick={() => copyText(donateAddr)}
+              type="button"
+            >
+              {t.copyAddress}
+            </button>
+          </div>
+
+          <div className="mt-3 flex flex-wrap items-center gap-2 text-sm">
+            <label className="flex items-center gap-2">
+              <span className="text-gray-600">{t.txid}</span>
+              <input
+                className="border rounded px-2 py-1 bg-white w-[360px] max-w-full"
+                value={donateTxid}
+                onChange={(e) => setDonateTxid(e.target.value)}
+                placeholder="0x… / …"
+              />
+            </label>
+            <button
+              className="px-4 py-2 rounded-lg bg-indigo-600 text-white font-medium hover:bg-indigo-700 disabled:opacity-50"
+              onClick={applyCryptoTxid}
+              disabled={!quota || !donations}
+              type="button"
+            >
+              {t.applyTxid}
+            </button>
+
+            {donateTxid.trim() ? (
+              <a
+                className="text-sm text-indigo-700 underline"
+                href={explorerTxUrl(donateChain, donateTxid) ?? '#'}
+                target="_blank"
+                rel="noreferrer"
+              >
+                explorer
+              </a>
+            ) : null}
+          </div>
+
+          {notice ? <div className="mt-2 text-sm text-gray-700">{notice}</div> : null}
+          <div className="mt-2 text-xs text-gray-500">{t.donateNote}</div>
         </div>
 
         {resp && !resp.ok ? (
