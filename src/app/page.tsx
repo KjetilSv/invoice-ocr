@@ -234,36 +234,63 @@ export default function Home() {
   }
 
   return (
-    <div className="min-h-screen p-6 max-w-2xl mx-auto">
-      <h1 className="text-2xl font-semibold">Invoice OCR</h1>
-      <p className="text-sm text-gray-600 mt-1">
-        Super enkel: ta bilde / last opp → copy betalingsfelt. Vi lagrer ingenting (MVP).
-      </p>
-
-      <div className="mt-4 p-4 border rounded-lg">
-        <div className="flex flex-wrap gap-2 items-center">
-          <input
-            type="file"
-            accept="image/*"
-            capture="environment"
-            onChange={(e) => {
-              setFile(e.target.files?.[0] ?? null);
-              setResp(null);
-            }}
-          />
-
-          {mounted && canUseCamera ? (
-            !cameraOn ? (
-              <button className="px-3 py-2 border rounded" onClick={startCamera} disabled={loading}>
-                Start camera
-              </button>
-            ) : (
-              <button className="px-3 py-2 border rounded" onClick={stopCamera} disabled={loading}>
-                Stop camera
-              </button>
-            )
-          ) : null}
+    <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white p-6">
+      <div className="max-w-2xl mx-auto">
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <h1 className="text-3xl font-semibold tracking-tight">Invoice OCR</h1>
+            <p className="text-sm text-gray-600 mt-1">
+              Super enkel: ta bilde / last opp → copy betalingsfelt. Vi lagrer ingenting (MVP).
+            </p>
+          </div>
+          <div className="hidden sm:block text-xs text-gray-500 mt-2">v0.1</div>
         </div>
+
+        <div className="mt-5 p-4 sm:p-5 border bg-white rounded-xl shadow-sm">
+          <div className="flex flex-wrap gap-2 items-center">
+            <input
+              id="file"
+              className="hidden"
+              type="file"
+              accept="image/*"
+              capture="environment"
+              onChange={(e) => {
+                setFile(e.target.files?.[0] ?? null);
+                setResp(null);
+              }}
+            />
+
+            <label
+              htmlFor="file"
+              className="px-4 py-2 rounded-lg bg-indigo-600 text-white font-medium hover:bg-indigo-700 cursor-pointer"
+            >
+              Velg bilde
+            </label>
+
+            {mounted && canUseCamera ? (
+              !cameraOn ? (
+                <button
+                  className="px-4 py-2 rounded-lg bg-slate-900 text-white font-medium hover:bg-slate-800 disabled:opacity-50"
+                  onClick={startCamera}
+                  disabled={loading}
+                >
+                  Start kamera
+                </button>
+              ) : (
+                <button
+                  className="px-4 py-2 rounded-lg bg-slate-900 text-white font-medium hover:bg-slate-800 disabled:opacity-50"
+                  onClick={stopCamera}
+                  disabled={loading}
+                >
+                  Stopp kamera
+                </button>
+              )
+            ) : null}
+
+            <span className="text-sm text-gray-600 truncate max-w-[260px]">
+              {file ? file.name : 'Ingen fil valgt'}
+            </span>
+          </div>
 
         {cameraOn ? (
           <div className="mt-3">
@@ -277,18 +304,32 @@ export default function Home() {
         ) : null}
 
         <div className="mt-4 flex flex-wrap gap-2 items-center">
-          <button className="px-3 py-2 border rounded" onClick={runOpenRouter} disabled={loading || !file}>
+          <button
+            className="px-4 py-2 rounded-lg bg-emerald-600 text-white font-medium hover:bg-emerald-700 disabled:opacity-50"
+            onClick={runOpenRouter}
+            disabled={loading || !file}
+          >
             {loading ? 'Running…' : 'Run (AI)'}
           </button>
-          <button className="px-3 py-2 border rounded" onClick={runBrowserOcr} disabled={loading || !file}>
+          <button
+            className="px-4 py-2 rounded-lg bg-gray-100 text-gray-900 font-medium hover:bg-gray-200 border disabled:opacity-50"
+            onClick={runBrowserOcr}
+            disabled={loading || !file}
+          >
             {loading ? 'Running…' : 'Run (free OCR)'}
           </button>
 
           <div className="text-sm text-gray-600">
-            {quota ? `Scans left today: ${quota.freeLeft + quota.bonusLeft} (free ${quota.freeLeft}, bonus ${quota.bonusLeft})` : '…'}
+            {quota
+              ? `Scans left today: ${quota.freeLeft + quota.bonusLeft} (free ${quota.freeLeft}, bonus ${quota.bonusLeft})`
+              : '…'}
           </div>
 
-          <button className="px-3 py-2 border rounded" onClick={donate} disabled={!quota || quota.donatedToday}>
+          <button
+            className="px-4 py-2 rounded-lg bg-indigo-50 text-indigo-700 font-medium hover:bg-indigo-100 border border-indigo-200 disabled:opacity-50"
+            onClick={donate}
+            disabled={!quota || quota.donatedToday}
+          >
             {quota?.donatedToday ? 'Donated today (+10 applied)' : 'I donated (+10 scans)'}
           </button>
         </div>
@@ -324,26 +365,50 @@ export default function Home() {
           <span className="text-gray-500">(saved in this browser)</span>
         </div>
 
-        {resp && !resp.ok ? <div className="mt-3 text-sm text-red-600">{resp.message}</div> : null}
+        {resp && !resp.ok ? (
+          <div className="mt-3 text-sm text-red-700 bg-red-50 border border-red-200 rounded-lg p-3">
+            {resp.message}
+          </div>
+        ) : null}
 
         {resp && resp.ok ? (
-          <div className="mt-4 p-3 bg-gray-50 rounded border">
+          <div className="mt-4 p-4 bg-gray-50 rounded-xl border">
             <div className="text-sm text-gray-600">Mode: {resp.mode} • detected: {resp.parsed.mode}</div>
 
             <div className="mt-2 flex flex-wrap gap-2">
-              <button className="px-3 py-2 border rounded" onClick={() => copy(resp.parsed.kid)} disabled={!resp.parsed.kid}>
+              <button
+                className="px-3 py-2 rounded-lg bg-white border hover:bg-gray-50 disabled:opacity-50"
+                onClick={() => copy(resp.parsed.kid)}
+                disabled={!resp.parsed.kid}
+              >
                 Copy KID
               </button>
-              <button className="px-3 py-2 border rounded" onClick={() => copy(resp.parsed.konto)} disabled={!resp.parsed.konto}>
+              <button
+                className="px-3 py-2 rounded-lg bg-white border hover:bg-gray-50 disabled:opacity-50"
+                onClick={() => copy(resp.parsed.konto)}
+                disabled={!resp.parsed.konto}
+              >
                 Copy konto
               </button>
-              <button className="px-3 py-2 border rounded" onClick={() => copy(resp.parsed.iban)} disabled={!resp.parsed.iban}>
+              <button
+                className="px-3 py-2 rounded-lg bg-white border hover:bg-gray-50 disabled:opacity-50"
+                onClick={() => copy(resp.parsed.iban)}
+                disabled={!resp.parsed.iban}
+              >
                 Copy IBAN
               </button>
-              <button className="px-3 py-2 border rounded" onClick={() => copy(resp.parsed.amount)} disabled={!resp.parsed.amount}>
+              <button
+                className="px-3 py-2 rounded-lg bg-white border hover:bg-gray-50 disabled:opacity-50"
+                onClick={() => copy(resp.parsed.amount)}
+                disabled={!resp.parsed.amount}
+              >
                 Copy amount
               </button>
-              <button className="px-3 py-2 border rounded" onClick={() => copy(resp.parsed.dueDate)} disabled={!resp.parsed.dueDate}>
+              <button
+                className="px-3 py-2 rounded-lg bg-white border hover:bg-gray-50 disabled:opacity-50"
+                onClick={() => copy(resp.parsed.dueDate)}
+                disabled={!resp.parsed.dueDate}
+              >
                 Copy due date
               </button>
             </div>
@@ -367,6 +432,7 @@ export default function Home() {
         </a>
         <span>•</span>
         <span>Donate-knappen er MVP (honor-system). Senere kan vi verifisere betalinger.</span>
+      </div>
       </div>
     </div>
   );
