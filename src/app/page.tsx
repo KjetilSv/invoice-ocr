@@ -102,6 +102,67 @@ export default function Home() {
   const [loading, setLoading] = useState(false);
   const [resp, setResp] = useState<Resp | null>(null);
   const [prefs, setPrefs] = useState<Prefs>({ preset: 'auto', lang: 'auto' });
+  const uiLang = useMemo(() => {
+    if (prefs.lang === 'no' || prefs.lang === 'en') return prefs.lang;
+    const nav = (typeof navigator !== 'undefined' && navigator.language) || 'en';
+    return nav.toLowerCase().startsWith('no') || nav.toLowerCase().startsWith('nb') || nav.toLowerCase().startsWith('nn')
+      ? 'no'
+      : 'en';
+  }, [prefs.lang]);
+
+  const t = useMemo(() => {
+    const no = {
+      chooseImage: 'Velg bilde',
+      startCamera: 'Start kamera',
+      stopCamera: 'Stopp kamera',
+      capture: 'Ta bilde',
+      noFile: 'Ingen fil valgt',
+      runAI: 'Kjør (AI)',
+      runFree: 'Kjør (gratis OCR)',
+      running: 'Kjører…',
+      scansLeft: 'Scans igjen i dag',
+      donatedToday: 'Donert i dag (+10 aktivert)',
+      iDonated: 'Jeg donerte (+10 scans)',
+      preset: 'Preset',
+      language: 'Språk',
+      saved: '(lagres i denne browseren)',
+      mode: 'Mode',
+      detected: 'detected',
+      copyKID: 'Kopier KID',
+      copyKonto: 'Kopier konto',
+      copyIBAN: 'Kopier IBAN',
+      copyAmount: 'Kopier beløp',
+      copyDue: 'Kopier forfall',
+      rawText: 'Raw text',
+      scansNone: 'Ingen scans igjen i dag. Doner for +10 scans.',
+    };
+    const en = {
+      chooseImage: 'Choose image',
+      startCamera: 'Start camera',
+      stopCamera: 'Stop camera',
+      capture: 'Capture',
+      noFile: 'No file selected',
+      runAI: 'Run (AI)',
+      runFree: 'Run (free OCR)',
+      running: 'Running…',
+      scansLeft: 'Scans left today',
+      donatedToday: 'Donated today (+10 applied)',
+      iDonated: 'I donated (+10 scans)',
+      preset: 'Preset',
+      language: 'Language',
+      saved: '(saved in this browser)',
+      mode: 'Mode',
+      detected: 'detected',
+      copyKID: 'Copy KID',
+      copyKonto: 'Copy account',
+      copyIBAN: 'Copy IBAN',
+      copyAmount: 'Copy amount',
+      copyDue: 'Copy due date',
+      rawText: 'Raw text',
+      scansNone: 'No scans left today. Donate to get +10 scans.',
+    };
+    return uiLang === 'no' ? no : en;
+  }, [uiLang]);
 
   // Camera (preview) – only secure contexts
   const videoRef = useRef<HTMLVideoElement | null>(null);
@@ -180,7 +241,7 @@ export default function Home() {
   async function runOpenRouter() {
     if (!file || !quota) return;
     if (!canScan(quota)) {
-      setResp({ ok: false, message: 'No scans left today. Donate to get +10 scans.' });
+      setResp({ ok: false, message: t.scansNone });
       return;
     }
 
@@ -264,7 +325,7 @@ export default function Home() {
               htmlFor="file"
               className="px-4 py-2 rounded-lg bg-indigo-600 text-white font-medium hover:bg-indigo-700 cursor-pointer"
             >
-              Velg bilde
+              {t.chooseImage}
             </label>
 
             {mounted && canUseCamera ? (
@@ -274,7 +335,7 @@ export default function Home() {
                   onClick={startCamera}
                   disabled={loading}
                 >
-                  Start kamera
+                  {t.startCamera}
                 </button>
               ) : (
                 <button
@@ -282,13 +343,13 @@ export default function Home() {
                   onClick={stopCamera}
                   disabled={loading}
                 >
-                  Stopp kamera
+                  {t.stopCamera}
                 </button>
               )
             ) : null}
 
             <span className="text-sm text-gray-600 truncate max-w-[260px]">
-              {file ? file.name : 'Ingen fil valgt'}
+              {file ? file.name : t.noFile}
             </span>
           </div>
 
@@ -297,7 +358,7 @@ export default function Home() {
             <video ref={videoRef} className="w-full rounded border" playsInline muted />
             <div className="mt-2">
               <button className="px-3 py-2 border rounded" onClick={capturePhoto}>
-                Capture
+                {t.capture}
               </button>
             </div>
           </div>
@@ -309,19 +370,19 @@ export default function Home() {
             onClick={runOpenRouter}
             disabled={loading || !file}
           >
-            {loading ? 'Running…' : 'Run (AI)'}
+            {loading ? t.running : t.runAI}
           </button>
           <button
             className="px-4 py-2 rounded-lg bg-gray-100 text-gray-900 font-medium hover:bg-gray-200 border disabled:opacity-50"
             onClick={runBrowserOcr}
             disabled={loading || !file}
           >
-            {loading ? 'Running…' : 'Run (free OCR)'}
+            {loading ? t.running : t.runFree}
           </button>
 
           <div className="text-sm text-gray-600">
             {quota
-              ? `Scans left today: ${quota.freeLeft + quota.bonusLeft} (free ${quota.freeLeft}, bonus ${quota.bonusLeft})`
+              ? `${t.scansLeft}: ${quota.freeLeft + quota.bonusLeft} (free ${quota.freeLeft}, bonus ${quota.bonusLeft})`
               : '…'}
           </div>
 
@@ -330,13 +391,13 @@ export default function Home() {
             onClick={donate}
             disabled={!quota || quota.donatedToday}
           >
-            {quota?.donatedToday ? 'Donated today (+10 applied)' : 'I donated (+10 scans)'}
+            {quota?.donatedToday ? t.donatedToday : t.iDonated}
           </button>
         </div>
 
         <div className="mt-3 flex flex-wrap gap-3 items-center text-sm">
           <label className="flex items-center gap-2">
-            <span className="text-gray-600">Preset</span>
+            <span className="text-gray-600">{t.preset}</span>
             <select
               className="border rounded px-2 py-1"
               value={prefs.preset}
@@ -350,7 +411,7 @@ export default function Home() {
           </label>
 
           <label className="flex items-center gap-2">
-            <span className="text-gray-600">Language</span>
+            <span className="text-gray-600">{t.language}</span>
             <select
               className="border rounded px-2 py-1"
               value={prefs.lang}
@@ -362,7 +423,7 @@ export default function Home() {
             </select>
           </label>
 
-          <span className="text-gray-500">(saved in this browser)</span>
+          <span className="text-gray-500">{t.saved}</span>
         </div>
 
         {resp && !resp.ok ? (
@@ -373,7 +434,9 @@ export default function Home() {
 
         {resp && resp.ok ? (
           <div className="mt-4 p-4 bg-gray-50 rounded-xl border">
-            <div className="text-sm text-gray-600">Mode: {resp.mode} • detected: {resp.parsed.mode}</div>
+            <div className="text-sm text-gray-600">
+              {t.mode}: {resp.mode} • {t.detected}: {resp.parsed.mode}
+            </div>
 
             <div className="mt-2 flex flex-wrap gap-2">
               <button
@@ -381,42 +444,42 @@ export default function Home() {
                 onClick={() => copy(resp.parsed.kid)}
                 disabled={!resp.parsed.kid}
               >
-                Copy KID
+                {t.copyKID}
               </button>
               <button
                 className="px-3 py-2 rounded-lg bg-white border hover:bg-gray-50 disabled:opacity-50"
                 onClick={() => copy(resp.parsed.konto)}
                 disabled={!resp.parsed.konto}
               >
-                Copy konto
+                {t.copyKonto}
               </button>
               <button
                 className="px-3 py-2 rounded-lg bg-white border hover:bg-gray-50 disabled:opacity-50"
                 onClick={() => copy(resp.parsed.iban)}
                 disabled={!resp.parsed.iban}
               >
-                Copy IBAN
+                {t.copyIBAN}
               </button>
               <button
                 className="px-3 py-2 rounded-lg bg-white border hover:bg-gray-50 disabled:opacity-50"
                 onClick={() => copy(resp.parsed.amount)}
                 disabled={!resp.parsed.amount}
               >
-                Copy amount
+                {t.copyAmount}
               </button>
               <button
                 className="px-3 py-2 rounded-lg bg-white border hover:bg-gray-50 disabled:opacity-50"
                 onClick={() => copy(resp.parsed.dueDate)}
                 disabled={!resp.parsed.dueDate}
               >
-                Copy due date
+                {t.copyDue}
               </button>
             </div>
 
             <pre className="mt-3 text-sm whitespace-pre-wrap">{JSON.stringify(resp.parsed, null, 2)}</pre>
 
             <details className="mt-2">
-              <summary className="text-sm text-gray-600 cursor-pointer">Raw text</summary>
+              <summary className="text-sm text-gray-600 cursor-pointer">{t.rawText}</summary>
               <pre className="mt-2 text-xs whitespace-pre-wrap">{resp.rawText}</pre>
             </details>
           </div>
