@@ -125,6 +125,8 @@ export default function Home() {
   const t = useMemo(() => {
     const no = {
       chooseImage: 'Velg bilde',
+      title: 'Invoice OCR',
+      tagline: 'Super enkel: ta bilde / last opp → copy betalingsfelt. Vi lagrer ingenting (MVP).',
       startCamera: 'Start kamera',
       stopCamera: 'Stopp kamera',
       capture: 'Ta bilde',
@@ -161,6 +163,8 @@ export default function Home() {
     };
     const en = {
       chooseImage: 'Choose image',
+      title: 'Invoice OCR',
+      tagline: "Super simple: take a photo / upload → copy payment fields. We don't store anything (MVP).",
       startCamera: 'Start camera',
       stopCamera: 'Stop camera',
       capture: 'Capture',
@@ -384,10 +388,8 @@ export default function Home() {
       <div className="max-w-2xl mx-auto">
         <div className="flex items-start justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-semibold tracking-tight">Invoice OCR</h1>
-            <p className="text-sm text-gray-600 mt-1">
-              Super enkel: ta bilde / last opp → copy betalingsfelt. Vi lagrer ingenting (MVP).
-            </p>
+            <h1 className="text-3xl font-semibold tracking-tight">{t.title}</h1>
+            <p className="text-sm text-gray-600 mt-1">{t.tagline}</p>
           </div>
           <div className="hidden sm:block text-xs text-gray-500 mt-2">v0.1</div>
         </div>
