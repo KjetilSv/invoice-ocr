@@ -48,8 +48,9 @@ export default function PrivacyPage() {
         Denne policyen kan endres når vi går fra MVP til en mer “ordentlig” betalings- og logging-løsning.
       </p>
 
-      <p className="mt-8 text-sm text-gray-500">
-        <a className="underline" href="/">← Tilbake</a>
+      <p className="mt-8 text-sm text-gray-500 flex gap-3">
+        <a className="underline" href="/">← Home</a>
+        <a className="underline" href="/app">Open app</a>
       </p>
     </main>
   );

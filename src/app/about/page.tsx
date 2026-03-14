@@ -34,8 +34,9 @@ export default function AboutPage() {
       <h2 className="mt-6 text-xl font-semibold">Kontakt</h2>
       <p className="mt-2 text-gray-700">Hvis du vil bidra eller gi feedback: legg inn en issue / send en melding.</p>
 
-      <p className="mt-8 text-sm text-gray-500">
-        <a className="underline" href="/">← Tilbake</a>
+      <p className="mt-8 text-sm text-gray-500 flex gap-3">
+        <a className="underline" href="/">← Home</a>
+        <a className="underline" href="/app">Open app</a>
       </p>
     </main>
   );
