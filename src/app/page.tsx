@@ -105,13 +105,14 @@ export default function Home() {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const [cameraOn, setCameraOn] = useState(false);
-  const canUseCamera = useMemo(
-    () => typeof window !== 'undefined' && (window as any).isSecureContext && !!navigator.mediaDevices?.getUserMedia,
-    [],
-  );
+  const [mounted, setMounted] = useState(false);
+  const [canUseCamera, setCanUseCamera] = useState(false);
 
   useEffect(() => {
+    setMounted(true);
     setQuota(loadQuota());
+    // Camera preview requires secure context (https/localhost) and getUserMedia.
+    setCanUseCamera(Boolean((window as any).isSecureContext && navigator.mediaDevices?.getUserMedia));
   }, []);
 
   useEffect(() => {
@@ -241,7 +242,7 @@ export default function Home() {
             }}
           />
 
-          {canUseCamera ? (
+          {mounted && canUseCamera ? (
             !cameraOn ? (
               <button className="px-3 py-2 border rounded" onClick={startCamera} disabled={loading}>
                 Start camera
