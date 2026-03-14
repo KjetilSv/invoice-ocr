@@ -316,9 +316,16 @@ export default function Home() {
         ) : null}
       </div>
 
-      <p className="mt-6 text-xs text-gray-500">
-        Note: donate-knappen er MVP (honor-system). Senere kan vi verifisere betalinger.
-      </p>
+      <div className="mt-6 text-xs text-gray-500 flex gap-3">
+        <a className="underline" href="/about">
+          About
+        </a>
+        <a className="underline" href="/privacy">
+          Privacy
+        </a>
+        <span>•</span>
+        <span>Donate-knappen er MVP (honor-system). Senere kan vi verifisere betalinger.</span>
+      </div>
     </div>
   );
 }
