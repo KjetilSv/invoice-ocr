@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { createWorker } from 'tesseract.js';
 import { addBonus, applyDonate, canScan, consumeOne, loadQuota, saveQuota, type QuotaState } from '@/lib/quota';
 import { loadPrefs, savePrefs, type Prefs } from '@/lib/prefs';
+import { loadLocalApiPrefs, saveLocalApiPrefs, type LocalApiPrefs } from '@/lib/localApiPrefs';
 import {
   addUsedTxid,
   isTxidUsed,
@@ -110,6 +111,7 @@ export default function Home() {
   const [loading, setLoading] = useState(false);
   const [resp, setResp] = useState<Resp | null>(null);
   const [prefs, setPrefs] = useState<Prefs>({ preset: 'auto', lang: 'auto' });
+  const [localApi, setLocalApi] = useState<LocalApiPrefs>({ url: '', key: '' });
   const [donations, setDonations] = useState<DonationRecord | null>(null);
   const [donateChain, setDonateChain] = useState<DonateChain>('avax');
   const [donateTxid, setDonateTxid] = useState('');
@@ -150,6 +152,10 @@ export default function Home() {
       rawText: 'Raw text',
       scansNone: 'Ingen scans igjen i dag. Doner for +10 scans.',
       donateCryptoTitle: 'Doner med crypto (MVP)',
+      localApiTitle: 'Local API (gratis, via tunnel)',
+      localApiUrl: 'API URL',
+      localApiKey: 'API key',
+      runLocal: 'Kjør (Local API)',
       donateChain: 'Chain',
       donateAddress: 'Adresse',
       copyAddress: 'Kopier adresse',
@@ -188,6 +194,10 @@ export default function Home() {
       rawText: 'Raw text',
       scansNone: 'No scans left today. Donate to get +10 scans.',
       donateCryptoTitle: 'Donate with crypto (MVP)',
+      localApiTitle: 'Local API (free, via tunnel)',
+      localApiUrl: 'API URL',
+      localApiKey: 'API key',
+      runLocal: 'Run (Local API)',
       donateChain: 'Chain',
       donateAddress: 'Address',
       copyAddress: 'Copy address',
@@ -213,6 +223,7 @@ export default function Home() {
     setMounted(true);
     setQuota(loadQuota());
     setPrefs(loadPrefs());
+    setLocalApi(loadLocalApiPrefs());
     setDonations(loadDonations());
     // Camera preview requires secure context (https/localhost) and getUserMedia.
     setCanUseCamera(Boolean((window as any).isSecureContext && navigator.mediaDevices?.getUserMedia));
@@ -227,6 +238,11 @@ export default function Home() {
     if (!mounted) return;
     savePrefs(prefs);
   }, [mounted, prefs]);
+
+  useEffect(() => {
+    if (!mounted) return;
+    saveLocalApiPrefs(localApi);
+  }, [mounted, localApi]);
 
   useEffect(() => {
     if (!mounted || !donations) return;
@@ -323,6 +339,38 @@ export default function Home() {
       setResp({ ok: true, parsed: parseCandidates(rawText), rawText, mode: 'browser-ocr' });
     } catch (e: any) {
       setResp({ ok: false, message: 'Browser OCR failed: ' + String(e?.message || e) });
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function runLocalApi() {
+    if (!file) return;
+    if (!localApi.url) {
+      setResp({ ok: false, message: 'Missing Local API URL' });
+      return;
+    }
+    setLoading(true);
+    setResp(null);
+    try {
+      const scaled = await downscaleToJpeg(file, 1600);
+      const fd = new FormData();
+      fd.append('file', scaled);
+
+      const base = localApi.url.replace(/\/$/, '');
+      const url = `${base}/scan`;
+      const r = await fetch(url, {
+        method: 'POST',
+        body: fd,
+        headers: localApi.key ? { 'x-api-key': localApi.key } : {},
+      });
+      const data = (await r.json()) as any;
+      if (!data?.ok) throw new Error(data?.message || 'Local API failed');
+
+      // Map local API response to Parsed shape.
+      setResp({ ok: true, parsed: data.parsed, rawText: data.rawText || '', mode: 'browser-ocr' });
+    } catch (e: any) {
+      setResp({ ok: false, message: 'Local API failed: ' + String(e?.message || e) });
     } finally {
       setLoading(false);
     }
@@ -480,6 +528,14 @@ export default function Home() {
           >
             {loading ? t.running : t.runFree}
           </button>
+          <button
+            className="px-4 py-2 rounded-lg bg-sky-600 text-white font-medium hover:bg-sky-700 disabled:opacity-50"
+            onClick={runLocalApi}
+            disabled={loading || !file}
+            title="Uses your local server via tunnel"
+          >
+            {loading ? t.running : t.runLocal}
+          </button>
 
           <div className="text-sm text-gray-600">
             {quota
@@ -525,6 +581,33 @@ export default function Home() {
           </label>
 
           <span className="text-gray-500">{t.saved}</span>
+        </div>
+
+        <div className="mt-4 p-4 rounded-xl border bg-white">
+          <div className="font-medium">{t.localApiTitle}</div>
+          <div className="mt-2 flex flex-wrap gap-3 items-center text-sm">
+            <label className="flex items-center gap-2">
+              <span className="text-gray-600">{t.localApiUrl}</span>
+              <input
+                className="border rounded px-2 py-1 bg-white w-[360px] max-w-full"
+                value={localApi.url}
+                onChange={(e) => setLocalApi((p) => ({ ...p, url: e.target.value }))}
+                placeholder="https://xxxx.trycloudflare.com"
+              />
+            </label>
+            <label className="flex items-center gap-2">
+              <span className="text-gray-600">{t.localApiKey}</span>
+              <input
+                className="border rounded px-2 py-1 bg-white w-[240px] max-w-full"
+                value={localApi.key}
+                onChange={(e) => setLocalApi((p) => ({ ...p, key: e.target.value }))}
+                placeholder="…"
+              />
+            </label>
+          </div>
+          <div className="mt-2 text-xs text-gray-500">
+            API runs on your PC (tesseract). Tunnel gives you HTTPS without a fixed IP.
+          </div>
         </div>
 
         <div className="mt-4 p-4 rounded-xl border bg-white">
