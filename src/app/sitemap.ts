@@ -1,10 +1,12 @@
 import type { MetadataRoute } from 'next';
+import { getBaseUrl } from '@/lib/baseUrl';
 
 export default function sitemap(): MetadataRoute.Sitemap {
+  const base = getBaseUrl();
   return [
-    { url: 'http://localhost:3000/', lastModified: new Date() },
-    { url: 'http://localhost:3000/app', lastModified: new Date() },
-    { url: 'http://localhost:3000/about', lastModified: new Date() },
-    { url: 'http://localhost:3000/privacy', lastModified: new Date() },
+    { url: `${base}/`, lastModified: new Date() },
+    { url: `${base}/app`, lastModified: new Date() },
+    { url: `${base}/about`, lastModified: new Date() },
+    { url: `${base}/privacy`, lastModified: new Date() },
   ];
 }

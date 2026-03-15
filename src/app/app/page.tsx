@@ -5,6 +5,7 @@ import { createWorker } from 'tesseract.js';
 import { addBonus, applyDonate, canScan, consumeOne, loadQuota, saveQuota, type QuotaState } from '@/lib/quota';
 import { loadPrefs, savePrefs, type Prefs } from '@/lib/prefs';
 import { loadLocalApiPrefs, saveLocalApiPrefs, type LocalApiPrefs } from '@/lib/localApiPrefs';
+import { parseFromText, type Parsed } from '@/lib/parse';
 import {
   addUsedTxid,
   isTxidUsed,
@@ -14,70 +15,11 @@ import {
   type DonationRecord,
 } from '@/lib/donations';
 
-type Parsed = {
-  mode: 'no' | 'iban' | 'generic';
-  kid: string | null;
-  konto: string | null;
-  iban: string | null;
-  bic: string | null;
-  reference: string | null;
-  amount: string | null;
-  dueDate: string | null;
-  notes: string | null;
-};
 
 type Resp =
   | { ok: true; parsed: Parsed; rawText: string; mode: 'openrouter' | 'browser-ocr' | 'local-api' }
   | { ok: false; message: string };
 
-function parseCandidates(text: string): Parsed {
-  const t = text.replace(/\u00a0/g, ' ');
-
-  const kontoMatches = Array.from(t.matchAll(/\b(\d{4}[ .]?\d{2}[ .]?\d{5})\b/g)).map((m) => m[1]);
-  const konto = kontoMatches[0] ? kontoMatches[0].replace(/[ .]/g, '') : null;
-
-  const ibanMatch = t.match(/\b([A-Z]{2}\d{2}[A-Z0-9]{11,30})\b/);
-  const iban = ibanMatch ? ibanMatch[1].replace(/\s+/g, '').toUpperCase() : null;
-
-  const kidLine = t.split(/\r?\n/).find((l) => /\bkid\b/i.test(l));
-  let kid: string | null = null;
-  if (kidLine) {
-    const m = kidLine.match(/(\d[\d ]{4,28}\d)/);
-    if (m) kid = m[1].replace(/\s+/g, '');
-  }
-  if (!kid) {
-    const longDigits = Array.from(t.matchAll(/\b(\d[\d ]{6,28}\d)\b/g))
-      .map((m) => m[1].replace(/\s+/g, ''))
-      .filter((s) => s.length >= 7 && s.length <= 25);
-    kid = longDigits[0] ?? null;
-  }
-
-  const amountMatches = Array.from(t.matchAll(/\b(\d{1,3}(?:[ .]\d{3})*(?:[.,]\d{2}))\b/g)).map((m) => m[1]);
-  const amount = amountMatches[0] ?? null;
-
-  const dateMatches = Array.from(t.matchAll(/\b(\d{1,2})[./-](\d{1,2})[./-](\d{2,4})\b/g)).map((m) => {
-    const dd = m[1].padStart(2, '0');
-    const mm = m[2].padStart(2, '0');
-    let yy = m[3];
-    if (yy.length === 2) yy = '20' + yy;
-    return `${dd}.${mm}.${yy}`;
-  });
-  const dueDate = dateMatches[0] ?? null;
-
-  const mode: Parsed['mode'] = kid || konto ? 'no' : iban ? 'iban' : 'generic';
-
-  return {
-    mode,
-    kid,
-    konto,
-    iban,
-    bic: null,
-    reference: kid ?? null,
-    amount,
-    dueDate,
-    notes: null,
-  };
-}
 
 async function downscaleToJpeg(file: File, maxW = 1600): Promise<File> {
   const img = document.createElement('img');
@@ -336,7 +278,7 @@ export default function Home() {
       const { data } = await worker.recognize(file);
       await worker.terminate();
       const rawText = data.text || '';
-      setResp({ ok: true, parsed: parseCandidates(rawText), rawText, mode: 'browser-ocr' });
+      setResp({ ok: true, parsed: parseFromText(rawText), rawText, mode: 'browser-ocr' });
     } catch (e: any) {
       setResp({ ok: false, message: 'Browser OCR failed: ' + String(e?.message || e) });
     } finally {
@@ -367,8 +309,8 @@ export default function Home() {
       const data = (await r.json()) as any;
       if (!data?.ok) throw new Error(data?.message || 'Local API failed');
 
-      // Map local API response to Parsed shape.
-      setResp({ ok: true, parsed: data.parsed, rawText: data.rawText || '', mode: 'local-api' });
+      // Re-parse locally to add confidence/validation.
+      setResp({ ok: true, parsed: parseFromText(data.rawText || ''), rawText: data.rawText || '', mode: 'local-api' });
     } catch (e: any) {
       setResp({ ok: false, message: 'Local API failed: ' + String(e?.message || e) });
     } finally {
@@ -722,7 +664,14 @@ export default function Home() {
               </button>
             </div>
 
-            <pre className="mt-3 text-sm whitespace-pre-wrap">{JSON.stringify(resp.parsed, null, 2)}</pre>
+            {resp.parsed.confidence ? (
+              <div className="mt-3 text-xs text-gray-600">
+                Confidence — KID: {resp.parsed.confidence.kid ?? '—'} • Konto: {resp.parsed.confidence.konto ?? '—'} • IBAN:{' '}
+                {resp.parsed.confidence.iban ?? '—'}
+              </div>
+            ) : null}
+
+            <pre className="mt-2 text-sm whitespace-pre-wrap">{JSON.stringify(resp.parsed, null, 2)}</pre>
 
             <details className="mt-2">
               <summary className="text-sm text-gray-600 cursor-pointer">{t.rawText}</summary>
