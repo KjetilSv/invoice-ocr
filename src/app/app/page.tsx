@@ -22,29 +22,57 @@ type Resp =
 
 
 async function downscaleToJpeg(file: File, maxW = 1600): Promise<File> {
-  const img = document.createElement('img');
-  img.src = URL.createObjectURL(file);
-  await new Promise<void>((res, rej) => {
-    img.onload = () => res();
-    img.onerror = () => rej(new Error('Failed to load image'));
-  });
+  // Some Android/Chrome builds can be flaky with <img src=blob:...> loads.
+  // Prefer createImageBitmap when available.
+  const blob = file as Blob;
 
-  const scale = Math.min(1, maxW / (img.naturalWidth || maxW));
-  const w = Math.max(1, Math.round((img.naturalWidth || maxW) * scale));
-  const h = Math.max(1, Math.round((img.naturalHeight || maxW) * scale));
+  let sourceW = 0;
+  let sourceH = 0;
+  let draw: (ctx: CanvasRenderingContext2D, w: number, h: number) => void;
+
+  if (typeof createImageBitmap !== 'undefined') {
+    const bmp = await createImageBitmap(blob);
+    sourceW = bmp.width;
+    sourceH = bmp.height;
+    draw = (ctx, w, h) => {
+      ctx.drawImage(bmp, 0, 0, w, h);
+      // best-effort cleanup
+      try {
+        bmp.close();
+      } catch {
+        // ignore
+      }
+    };
+  } else {
+    const img = document.createElement('img');
+    const url = URL.createObjectURL(file);
+    img.src = url;
+    await new Promise<void>((res, rej) => {
+      img.onload = () => res();
+      img.onerror = () => rej(new Error('Failed to load image'));
+    });
+    sourceW = img.naturalWidth || maxW;
+    sourceH = img.naturalHeight || maxW;
+    draw = (ctx, w, h) => ctx.drawImage(img, 0, 0, w, h);
+    URL.revokeObjectURL(url);
+  }
+
+  const scale = Math.min(1, maxW / (sourceW || maxW));
+  const w = Math.max(1, Math.round((sourceW || maxW) * scale));
+  const h = Math.max(1, Math.round((sourceH || maxW) * scale));
 
   const canvas = document.createElement('canvas');
   canvas.width = w;
   canvas.height = h;
   const ctx = canvas.getContext('2d');
   if (!ctx) return file;
-  ctx.drawImage(img, 0, 0, w, h);
 
-  const blob: Blob | null = await new Promise((resolve) => canvas.toBlob(resolve, 'image/jpeg', 0.9));
-  URL.revokeObjectURL(img.src);
-  if (!blob) return file;
+  draw(ctx, w, h);
 
-  return new File([blob], file.name.replace(/\.[a-z0-9]+$/i, '') + '.jpg', { type: 'image/jpeg' });
+  const outBlob: Blob | null = await new Promise((resolve) => canvas.toBlob(resolve, 'image/jpeg', 0.9));
+  if (!outBlob) return file;
+
+  return new File([outBlob], file.name.replace(/\.[a-z0-9]+$/i, '') + '.jpg', { type: 'image/jpeg' });
 }
 
 export default function Home() {
@@ -360,6 +388,8 @@ export default function Home() {
               onChange={(e) => {
                 setFile(e.target.files?.[0] ?? null);
                 setResp(null);
+                // allow selecting the same image again
+                e.currentTarget.value = '';
               }}
             />
 
@@ -372,6 +402,8 @@ export default function Home() {
               onChange={(e) => {
                 setFile(e.target.files?.[0] ?? null);
                 setResp(null);
+                // allow selecting the same image again
+                e.currentTarget.value = '';
               }}
             />
 
