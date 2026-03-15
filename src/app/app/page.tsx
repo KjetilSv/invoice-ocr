@@ -342,8 +342,7 @@ export default function Home() {
   const donateAddr = useMemo(() => {
     const avax = '0xab272ADCc18534a52474979aC6a6AF237553FA0e';
     const dfk = '0xab272ADCc18534a52474979aC6a6AF237553FA0e';
-    // NOTE: Solana addresses are NOT 0x…; user must provide a real base58 address later.
-    const sol = '0xab272ADCc18534a52474979aC6a6AF237553FA0e';
+    const sol = '4NJYnpk4eLfuigUB2tbdZTY2jy45zTL8eptp1MFx8wfS';
     return donateChain === 'avax' ? avax : donateChain === 'dfk' ? dfk : sol;
   }, [donateChain]);
 
