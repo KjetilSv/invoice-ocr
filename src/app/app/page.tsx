@@ -52,6 +52,7 @@ export default function Home() {
   const [file, setFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
   const [resp, setResp] = useState<Resp | null>(null);
+  const [statusLine, setStatusLine] = useState<string | null>(null);
   const [prefs, setPrefs] = useState<Prefs>({ preset: 'auto', lang: 'auto' });
   const [aiEnabled, setAiEnabled] = useState(false);
   const [localApiUrl, setLocalApiUrl] = useState('');
@@ -250,8 +251,11 @@ export default function Home() {
 
     setLoading(true);
     setResp(null);
+    setStatusLine('Preparing image…');
     try {
       const scaled = await downscaleToJpeg(file, 1600);
+      setStatusLine('Sending to AI…');
+
       const fd = new FormData();
       fd.append('file', scaled);
       fd.append('preset', prefs.preset);
@@ -267,6 +271,7 @@ export default function Home() {
       setResp({ ok: false, message: String(e?.message || e) });
     } finally {
       setLoading(false);
+      setStatusLine(null);
     }
   }
 
@@ -274,16 +279,22 @@ export default function Home() {
     if (!file) return;
     setLoading(true);
     setResp(null);
+    setStatusLine('Preparing image…');
     try {
+      const scaled = await downscaleToJpeg(file, 1600);
+      setStatusLine('Running OCR in browser…');
+
       const worker = await createWorker('eng');
-      const { data } = await worker.recognize(file);
+      const { data } = await worker.recognize(scaled);
       await worker.terminate();
+
       const rawText = data.text || '';
       setResp({ ok: true, parsed: parseFromText(rawText), rawText, mode: 'browser-ocr' });
     } catch (e: any) {
       setResp({ ok: false, message: 'Browser OCR failed: ' + String(e?.message || e) });
     } finally {
       setLoading(false);
+      setStatusLine(null);
     }
   }
 
@@ -295,8 +306,11 @@ export default function Home() {
     }
     setLoading(true);
     setResp(null);
+    setStatusLine('Preparing image…');
     try {
       const scaled = await downscaleToJpeg(file, 1600);
+      setStatusLine('Calling Local API…');
+
       const fd = new FormData();
       fd.append('file', scaled);
 
@@ -316,6 +330,7 @@ export default function Home() {
       setResp({ ok: false, message: 'Local API failed: ' + String(e?.message || e) });
     } finally {
       setLoading(false);
+      setStatusLine(null);
     }
   }
 
@@ -401,8 +416,9 @@ export default function Home() {
 
         <div className="mt-5 p-4 sm:p-5 border bg-white rounded-xl shadow-sm">
           <div className="flex flex-wrap gap-2 items-center">
+            {/* Camera capture input (mobile tends to open camera UI) */}
             <input
-              id="file"
+              id="file-camera"
               className="hidden"
               type="file"
               accept="image/*"
@@ -413,11 +429,30 @@ export default function Home() {
               }}
             />
 
+            {/* Gallery/file picker input (no capture attribute) */}
+            <input
+              id="file-picker"
+              className="hidden"
+              type="file"
+              accept="image/*"
+              onChange={(e) => {
+                setFile(e.target.files?.[0] ?? null);
+                setResp(null);
+              }}
+            />
+
             <label
-              htmlFor="file"
+              htmlFor="file-camera"
               className="px-4 py-2 rounded-lg bg-indigo-600 text-white font-medium hover:bg-indigo-700 cursor-pointer"
             >
-              {t.chooseImage}
+              Ta bilde
+            </label>
+
+            <label
+              htmlFor="file-picker"
+              className="px-4 py-2 rounded-lg bg-gray-100 text-gray-900 font-medium hover:bg-gray-200 border cursor-pointer"
+            >
+              Velg bilde
             </label>
 
             {mounted && canUseCamera ? (
@@ -457,6 +492,7 @@ export default function Home() {
         ) : null}
 
         <div className="mt-4 flex flex-wrap gap-2 items-center">
+          {loading && statusLine ? <div className="text-sm text-gray-600">{statusLine}</div> : null}
           {aiEnabled ? (
             <button
               className="px-4 py-2 rounded-lg bg-emerald-600 text-white font-medium hover:bg-emerald-700 disabled:opacity-50"
