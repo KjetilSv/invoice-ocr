@@ -55,8 +55,12 @@ export default function Home() {
   const [statusLine, setStatusLine] = useState<string | null>(null);
   const [prefs, setPrefs] = useState<Prefs>({ preset: 'auto', lang: 'auto' });
   const [aiEnabled, setAiEnabled] = useState(false);
+  const [useLocalApi, setUseLocalApi] = useState(false);
   const [localApiUrl, setLocalApiUrl] = useState('');
   const [localApiKey, setLocalApiKey] = useState('');
+  const [donateSol, setDonateSol] = useState('');
+  const [donateAvax, setDonateAvax] = useState('');
+  const [donateDfk, setDonateDfk] = useState('');
   const [donations, setDonations] = useState<DonationRecord | null>(null);
   const [donateChain, setDonateChain] = useState<DonateChain>('avax');
   const [donateTxid, setDonateTxid] = useState('');
@@ -79,11 +83,9 @@ export default function Home() {
       capture: 'Ta bilde',
       noFile: 'Ingen fil valgt',
       runAI: 'Kjør (AI)',
-      runFree: 'Kjør (gratis OCR)',
+      runFree: 'Kjør',
       running: 'Kjører…',
       scansLeft: 'Scans igjen i dag',
-      donatedToday: 'Donert i dag (+10 aktivert)',
-      iDonated: 'Jeg donerte (+10 scans)',
       preset: 'Preset',
       language: 'Språk',
       saved: '(lagres i denne browseren)',
@@ -97,10 +99,7 @@ export default function Home() {
       rawText: 'Raw text',
       scansNone: 'Ingen scans igjen i dag. Doner for +10 scans.',
       donateCryptoTitle: 'Doner med crypto (MVP)',
-      localApiTitle: 'Local API (gratis, via tunnel)',
-      localApiUrl: 'API URL',
-      localApiKey: 'API key',
-      runLocal: 'Kjør (Local API)',
+      runLocal: 'Kjør',
       donateChain: 'Chain',
       donateAddress: 'Adresse',
       copyAddress: 'Kopier adresse',
@@ -121,11 +120,9 @@ export default function Home() {
       capture: 'Capture',
       noFile: 'No file selected',
       runAI: 'Run (AI)',
-      runFree: 'Run (free OCR)',
+      runFree: 'Run',
       running: 'Running…',
       scansLeft: 'Scans left today',
-      donatedToday: 'Donated today (+10 applied)',
-      iDonated: 'I donated (+10 scans)',
       preset: 'Preset',
       language: 'Language',
       saved: '(saved in this browser)',
@@ -139,10 +136,7 @@ export default function Home() {
       rawText: 'Raw text',
       scansNone: 'No scans left today. Donate to get +10 scans.',
       donateCryptoTitle: 'Donate with crypto (MVP)',
-      localApiTitle: 'Local API (free, via tunnel)',
-      localApiUrl: 'API URL',
-      localApiKey: 'API key',
-      runLocal: 'Run (Local API)',
+      runLocal: 'Run',
       donateChain: 'Chain',
       donateAddress: 'Address',
       copyAddress: 'Copy address',
@@ -170,8 +164,12 @@ export default function Home() {
     setPrefs(loadPrefs());
     const admin = loadAdminPrefs();
     setAiEnabled(!!admin.aiEnabled);
+    setUseLocalApi(!!admin.useLocalApi);
     setLocalApiUrl(admin.localApiUrl || '');
     setLocalApiKey(admin.localApiKey || '');
+    setDonateSol(admin.donateSol || '');
+    setDonateAvax(admin.donateAvax || '');
+    setDonateDfk(admin.donateDfk || '');
     setDonations(loadDonations());
     // Camera preview requires secure context (https/localhost) and getUserMedia.
     setCanUseCamera(Boolean((window as any).isSecureContext && navigator.mediaDevices?.getUserMedia));
@@ -339,18 +337,13 @@ export default function Home() {
     await navigator.clipboard.writeText(s);
   }
 
-  function donate() {
-    // legacy honor button (kept for quick local testing)
-    if (!quota) return;
-    setQuota(applyDonate(quota));
-  }
 
   const donateAddr = useMemo(() => {
-    const avax = '0xab272ADCc18534a52474979aC6a6AF237553FA0e';
-    const dfk = '0xab272ADCc18534a52474979aC6a6AF237553FA0e';
-    const sol = '4NJYnpk4eLfuigUB2tbdZTY2jy45zTL8eptp1MFx8wfS';
+    const avax = donateAvax;
+    const dfk = donateDfk;
+    const sol = donateSol;
     return donateChain === 'avax' ? avax : donateChain === 'dfk' ? dfk : sol;
-  }, [donateChain]);
+  }, [donateAvax, donateDfk, donateSol, donateChain]);
 
   function explorerTxUrl(chain: DonateChain, txid: string) {
     const t = txid.trim();
@@ -505,18 +498,10 @@ export default function Home() {
 
           <button
             className="px-4 py-2 rounded-lg bg-gray-100 text-gray-900 font-medium hover:bg-gray-200 border disabled:opacity-50"
-            onClick={runBrowserOcr}
+            onClick={useLocalApi ? runLocalApi : runBrowserOcr}
             disabled={loading || !file}
           >
             {loading ? t.running : t.runFree}
-          </button>
-          <button
-            className="px-4 py-2 rounded-lg bg-sky-600 text-white font-medium hover:bg-sky-700 disabled:opacity-50"
-            onClick={runLocalApi}
-            disabled={loading || !file}
-            title="Uses your local server via tunnel"
-          >
-            {loading ? t.running : t.runLocal}
           </button>
 
           <div className="text-sm text-gray-600">
@@ -525,13 +510,6 @@ export default function Home() {
               : '…'}
           </div>
 
-          <button
-            className="px-4 py-2 rounded-lg bg-indigo-50 text-indigo-700 font-medium hover:bg-indigo-100 border border-indigo-200 disabled:opacity-50"
-            onClick={donate}
-            disabled={!quota || quota.donatedToday}
-          >
-            {quota?.donatedToday ? t.donatedToday : t.iDonated}
-          </button>
         </div>
 
         <div className="mt-3 flex flex-wrap gap-3 items-center text-sm">
@@ -565,26 +543,12 @@ export default function Home() {
           <span className="text-gray-500">{t.saved}</span>
         </div>
 
-        <div className="mt-4 p-4 rounded-xl border bg-white">
-          <div className="font-medium">{t.localApiTitle}</div>
-          <div className="mt-2 text-sm text-gray-700">
-            {localApiUrl ? (
-              <>
-                URL: <code className="text-xs bg-gray-50 border rounded px-2 py-1">{localApiUrl}</code>
-              </>
-            ) : (
-              <>
-                Not configured. Go to <a className="underline text-indigo-700" href="/admin">/admin</a>.
-              </>
-            )}
-          </div>
-          <div className="mt-2 text-xs text-gray-500">
-            API runs on your PC (tesseract). Tunnel gives you HTTPS without a fixed IP.
-          </div>
-        </div>
 
         <div className="mt-4 p-4 rounded-xl border bg-white">
           <div className="font-medium">{t.donateCryptoTitle}</div>
+          <div className="mt-1 text-xs text-gray-500">
+            Adresse settes i <a className="underline text-indigo-700" href="/admin">/admin</a>.
+          </div>
           <div className="mt-2 flex flex-wrap items-center gap-3 text-sm">
             <label className="flex items-center gap-2">
               <span className="text-gray-600">{t.donateChain}</span>
@@ -599,8 +563,6 @@ export default function Home() {
               </select>
             </label>
 
-            <div className="text-gray-600">{t.donateAddress}:</div>
-            <code className="text-xs bg-gray-50 border rounded px-2 py-1">{donateAddr}</code>
             <button
               className="px-3 py-1.5 rounded-lg bg-gray-100 border hover:bg-gray-200"
               onClick={() => copyText(donateAddr)}
@@ -620,14 +582,6 @@ export default function Home() {
                 placeholder="0x… / …"
               />
             </label>
-            <button
-              className="px-4 py-2 rounded-lg bg-indigo-600 text-white font-medium hover:bg-indigo-700 disabled:opacity-50"
-              onClick={applyCryptoTxid}
-              disabled={!quota || !donations}
-              type="button"
-            >
-              {t.applyTxid}
-            </button>
 
             {donateTxid.trim() ? (
               <a
@@ -639,6 +593,17 @@ export default function Home() {
                 explorer
               </a>
             ) : null}
+          </div>
+
+          <div className="mt-2">
+            <button
+              className="px-4 py-2 rounded-lg bg-indigo-600 text-white font-medium hover:bg-indigo-700 disabled:opacity-50"
+              onClick={applyCryptoTxid}
+              disabled={!quota || !donations}
+              type="button"
+            >
+              {t.applyTxid}
+            </button>
           </div>
 
           {notice ? <div className="mt-2 text-sm text-gray-700">{notice}</div> : null}

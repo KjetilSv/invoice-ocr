@@ -5,7 +5,15 @@ import { useEffect, useState } from 'react';
 import { loadAdminPrefs, saveAdminPrefs, type AdminPrefs } from '@/lib/adminPrefs';
 
 export default function AdminPage() {
-  const [prefs, setPrefs] = useState<AdminPrefs>({ aiEnabled: false, localApiUrl: '', localApiKey: '' });
+  const [prefs, setPrefs] = useState<AdminPrefs>({
+    aiEnabled: false,
+    useLocalApi: false,
+    localApiUrl: '',
+    localApiKey: '',
+    donateSol: '',
+    donateAvax: '',
+    donateDfk: '',
+  });
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
@@ -51,8 +59,18 @@ export default function AdminPage() {
         <div className="mt-4 p-5 rounded-xl border bg-white shadow-sm">
           <h2 className="font-semibold">Local API (tunnel)</h2>
           <p className="mt-1 text-sm text-gray-600">
-            Used by <b>Run (Local API)</b>. Example URL: <code>https://xxxx.trycloudflare.com</code>
+            If enabled, the main <b>Run</b> button uses your local tunnel API (free). Example URL:{' '}
+            <code>https://xxxx.trycloudflare.com</code>
           </p>
+
+          <label className="mt-3 flex items-center gap-3 text-sm">
+            <input
+              type="checkbox"
+              checked={prefs.useLocalApi}
+              onChange={(e) => setPrefs((p) => ({ ...p, useLocalApi: e.target.checked }))}
+            />
+            Use Local API for scans
+          </label>
 
           <div className="mt-3 grid gap-3">
             <label className="grid gap-1 text-sm">
@@ -76,8 +94,42 @@ export default function AdminPage() {
             </label>
 
             <div className="text-xs text-gray-500">
-              Tip: if you rotate the key, update it here. If URL changes (quick tunnel), paste the new URL.
+              Tip: if URL changes (quick tunnel), paste the new URL here.
             </div>
+          </div>
+        </div>
+
+        <div className="mt-4 p-5 rounded-xl border bg-white shadow-sm">
+          <h2 className="font-semibold">Donation addresses</h2>
+          <p className="mt-1 text-sm text-gray-600">Shown/used by the donate section in the app.</p>
+
+          <div className="mt-3 grid gap-3">
+            <label className="grid gap-1 text-sm">
+              <span className="text-gray-600">Solana address</span>
+              <input
+                className="border rounded-lg px-3 py-2"
+                value={prefs.donateSol}
+                onChange={(e) => setPrefs((p) => ({ ...p, donateSol: e.target.value }))}
+              />
+            </label>
+
+            <label className="grid gap-1 text-sm">
+              <span className="text-gray-600">AVAX address</span>
+              <input
+                className="border rounded-lg px-3 py-2"
+                value={prefs.donateAvax}
+                onChange={(e) => setPrefs((p) => ({ ...p, donateAvax: e.target.value }))}
+              />
+            </label>
+
+            <label className="grid gap-1 text-sm">
+              <span className="text-gray-600">DFK Chain address</span>
+              <input
+                className="border rounded-lg px-3 py-2"
+                value={prefs.donateDfk}
+                onChange={(e) => setPrefs((p) => ({ ...p, donateDfk: e.target.value }))}
+              />
+            </label>
           </div>
         </div>
 
