@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { rateLimit } from '@/lib/rateLimit';
 
 type Parsed = {
   mode: 'no' | 'iban' | 'generic';
@@ -34,6 +35,20 @@ function strOrNull(s: unknown) {
 
 export async function POST(req: Request) {
   try {
+    const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'local';
+    const rl = rateLimit(`scan:${ip}`, { limit: 20, windowMs: 60_000 });
+    if (!rl.ok) {
+      return NextResponse.json(
+        { ok: false, message: 'Rate limit exceeded. Try again in a minute.' } satisfies Err,
+        {
+          status: 429,
+          headers: {
+            'Retry-After': String(Math.max(1, Math.ceil((rl.resetAt - Date.now()) / 1000))),
+          },
+        },
+      );
+    }
+
     const apiKey = process.env.OPENROUTER_API_KEY;
     if (!apiKey) {
       return NextResponse.json(

@@ -155,10 +155,10 @@ export default function Home() {
       copyAddress: 'Kopier adresse',
       txid: 'Txid',
       applyTxid: 'Gi meg +10 scans',
-      txidUsed: 'Denne txid-en er allerede brukt i dag.',
+      txidUsed: 'Denne txid-en er allerede brukt (siste 30 dager).',
       txidMissing: 'Lim inn txid først.',
       donateNote:
-        'Dette er MVP: vi verifiserer ikke on-chain ennå. Vi bruker txid som en enkel “kupong” og blokkerer gjenbruk samme dag.',
+        'Dette er MVP: vi verifiserer ikke on-chain ennå. Vi bruker txid som en enkel “kupong” og blokkerer gjenbruk i 30 dager.',
       added10: '+10 scans lagt til',
     };
     const en = {
@@ -193,10 +193,10 @@ export default function Home() {
       copyAddress: 'Copy address',
       txid: 'Txid',
       applyTxid: 'Give me +10 scans',
-      txidUsed: 'This txid was already used today.',
+      txidUsed: 'This txid was already used (last 30 days).',
       txidMissing: 'Paste a txid first.',
       donateNote:
-        "MVP: we don't verify on-chain yet. We use the txid as a simple coupon and block re-use on the same day.",
+        "MVP: we don't verify on-chain yet. We use the txid as a simple coupon and block re-use for 30 days.",
       added10: '+10 scans added',
     };
     return uiLang === 'no' ? no : en;
@@ -364,11 +364,26 @@ export default function Home() {
 
   const [notice, setNotice] = useState<string | null>(null);
 
+  function isValidTxid(chain: DonateChain, txid: string) {
+    const s = txid.trim();
+    if (!s) return false;
+    if (chain === 'sol') {
+      // Solana signatures are base58, typically 80-90 chars.
+      return /^[1-9A-HJ-NP-Za-km-z]{70,100}$/.test(s);
+    }
+    // EVM tx hash
+    return /^0x[a-fA-F0-9]{64}$/.test(s);
+  }
+
   function applyCryptoTxid() {
     if (!quota || !donations) return;
     const txid = donateTxid.trim();
     if (!txid) {
       setNotice(t.txidMissing);
+      return;
+    }
+    if (!isValidTxid(donateChain, txid)) {
+      setNotice('Invalid txid format');
       return;
     }
     if (isTxidUsed(donations, donateChain, txid)) {
