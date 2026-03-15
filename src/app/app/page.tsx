@@ -79,9 +79,6 @@ export default function Home() {
       chooseImage: 'Velg bilde',
       title: 'Invoice OCR',
       tagline: 'Super enkel: ta bilde / last opp → copy betalingsfelt. Vi lagrer ingenting (MVP).',
-      startCamera: 'Start kamera',
-      stopCamera: 'Stopp kamera',
-      capture: 'Ta bilde',
       noFile: 'Ingen fil valgt',
       runAI: 'Kjør (AI)',
       runFree: 'Kjør',
@@ -116,9 +113,6 @@ export default function Home() {
       chooseImage: 'Choose image',
       title: 'Invoice OCR',
       tagline: "Super simple: take a photo / upload → copy payment fields. We don't store anything (MVP).",
-      startCamera: 'Start camera',
-      stopCamera: 'Stop camera',
-      capture: 'Capture',
       noFile: 'No file selected',
       runAI: 'Run (AI)',
       runFree: 'Run',
@@ -152,12 +146,7 @@ export default function Home() {
     return uiLang === 'no' ? no : en;
   }, [uiLang]);
 
-  // Camera (preview) – only secure contexts
-  const videoRef = useRef<HTMLVideoElement | null>(null);
-  const streamRef = useRef<MediaStream | null>(null);
-  const [cameraOn, setCameraOn] = useState(false);
   const [mounted, setMounted] = useState(false);
-  const [canUseCamera, setCanUseCamera] = useState(false);
 
   useEffect(() => {
     setMounted(true);
@@ -173,8 +162,6 @@ export default function Home() {
     setDonateAvax(admin.donateAvax || '');
     setDonateDfk(admin.donateDfk || '');
     setDonations(loadDonations());
-    // Camera preview requires secure context (https/localhost) and getUserMedia.
-    setCanUseCamera(Boolean((window as any).isSecureContext && navigator.mediaDevices?.getUserMedia));
   }, []);
 
   useEffect(() => {
@@ -193,54 +180,6 @@ export default function Home() {
     saveDonations(donations);
   }, [mounted, donations]);
 
-  useEffect(() => {
-    return () => {
-      try {
-        streamRef.current?.getTracks().forEach((t) => t.stop());
-      } catch {
-        // ignore
-      }
-    };
-  }, []);
-
-  async function startCamera() {
-    if (!canUseCamera) return;
-    const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: 'environment' } } });
-    streamRef.current = stream;
-    if (videoRef.current) {
-      videoRef.current.srcObject = stream;
-      await videoRef.current.play();
-    }
-    setCameraOn(true);
-  }
-
-  function stopCamera() {
-    try {
-      streamRef.current?.getTracks().forEach((t) => t.stop());
-    } catch {
-      // ignore
-    }
-    streamRef.current = null;
-    if (videoRef.current) videoRef.current.srcObject = null;
-    setCameraOn(false);
-  }
-
-  async function capturePhoto() {
-    const v = videoRef.current;
-    if (!v) return;
-    const w = v.videoWidth || 1280;
-    const h = v.videoHeight || 720;
-    const canvas = document.createElement('canvas');
-    canvas.width = w;
-    canvas.height = h;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-    ctx.drawImage(v, 0, 0, w, h);
-    const blob: Blob | null = await new Promise((resolve) => canvas.toBlob(resolve, 'image/jpeg', 0.92));
-    if (!blob) return;
-    setFile(new File([blob], `invoice-${Date.now()}.jpg`, { type: 'image/jpeg' }));
-    setResp(null);
-  }
 
   async function runOpenRouter() {
     if (!file || !quota) return;
@@ -450,41 +389,12 @@ export default function Home() {
               Velg bilde
             </label>
 
-            {mounted && canUseCamera ? (
-              !cameraOn ? (
-                <button
-                  className="px-4 py-2 rounded-lg bg-slate-900 text-white font-medium hover:bg-slate-800 disabled:opacity-50"
-                  onClick={startCamera}
-                  disabled={loading}
-                >
-                  {t.startCamera}
-                </button>
-              ) : (
-                <button
-                  className="px-4 py-2 rounded-lg bg-slate-900 text-white font-medium hover:bg-slate-800 disabled:opacity-50"
-                  onClick={stopCamera}
-                  disabled={loading}
-                >
-                  {t.stopCamera}
-                </button>
-              )
-            ) : null}
 
             <span className="text-sm text-gray-600 truncate max-w-[260px]">
               {file ? file.name : t.noFile}
             </span>
           </div>
 
-        {cameraOn ? (
-          <div className="mt-3">
-            <video ref={videoRef} className="w-full rounded border" playsInline muted />
-            <div className="mt-2">
-              <button className="px-3 py-2 border rounded" onClick={capturePhoto}>
-                {t.capture}
-              </button>
-            </div>
-          </div>
-        ) : null}
 
         <div className="mt-4 flex flex-wrap gap-2 items-center">
           {loading && statusLine ? <div className="text-sm text-gray-600">{statusLine}</div> : null}
