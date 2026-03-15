@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { createWorker } from 'tesseract.js';
 import { addBonus, applyDonate, canScan, consumeOne, loadQuota, saveQuota, type QuotaState } from '@/lib/quota';
 import { loadPrefs, savePrefs, type Prefs } from '@/lib/prefs';
-import { loadLocalApiPrefs, saveLocalApiPrefs, type LocalApiPrefs } from '@/lib/localApiPrefs';
+import { loadAdminPrefs } from '@/lib/adminPrefs';
 import { parseFromText, type Parsed } from '@/lib/parse';
 import {
   addUsedTxid,
@@ -53,7 +53,9 @@ export default function Home() {
   const [loading, setLoading] = useState(false);
   const [resp, setResp] = useState<Resp | null>(null);
   const [prefs, setPrefs] = useState<Prefs>({ preset: 'auto', lang: 'auto' });
-  const [localApi, setLocalApi] = useState<LocalApiPrefs>({ url: '', key: '' });
+  const [aiEnabled, setAiEnabled] = useState(false);
+  const [localApiUrl, setLocalApiUrl] = useState('');
+  const [localApiKey, setLocalApiKey] = useState('');
   const [donations, setDonations] = useState<DonationRecord | null>(null);
   const [donateChain, setDonateChain] = useState<DonateChain>('avax');
   const [donateTxid, setDonateTxid] = useState('');
@@ -165,7 +167,10 @@ export default function Home() {
     setMounted(true);
     setQuota(loadQuota());
     setPrefs(loadPrefs());
-    setLocalApi(loadLocalApiPrefs());
+    const admin = loadAdminPrefs();
+    setAiEnabled(!!admin.aiEnabled);
+    setLocalApiUrl(admin.localApiUrl || '');
+    setLocalApiKey(admin.localApiKey || '');
     setDonations(loadDonations());
     // Camera preview requires secure context (https/localhost) and getUserMedia.
     setCanUseCamera(Boolean((window as any).isSecureContext && navigator.mediaDevices?.getUserMedia));
@@ -181,10 +186,6 @@ export default function Home() {
     savePrefs(prefs);
   }, [mounted, prefs]);
 
-  useEffect(() => {
-    if (!mounted) return;
-    saveLocalApiPrefs(localApi);
-  }, [mounted, localApi]);
 
   useEffect(() => {
     if (!mounted || !donations) return;
@@ -288,8 +289,8 @@ export default function Home() {
 
   async function runLocalApi() {
     if (!file) return;
-    if (!localApi.url) {
-      setResp({ ok: false, message: 'Missing Local API URL' });
+    if (!localApiUrl) {
+      setResp({ ok: false, message: 'Missing Local API URL (set it in /admin)' });
       return;
     }
     setLoading(true);
@@ -299,12 +300,12 @@ export default function Home() {
       const fd = new FormData();
       fd.append('file', scaled);
 
-      const base = localApi.url.replace(/\/$/, '');
+      const base = localApiUrl.replace(/\/$/, '');
       const url = `${base}/scan`;
       const r = await fetch(url, {
         method: 'POST',
         body: fd,
-        headers: localApi.key ? { 'x-api-key': localApi.key } : {},
+        headers: localApiKey ? { 'x-api-key': localApiKey } : {},
       });
       const data = (await r.json()) as any;
       if (!data?.ok) throw new Error(data?.message || 'Local API failed');
@@ -456,13 +457,16 @@ export default function Home() {
         ) : null}
 
         <div className="mt-4 flex flex-wrap gap-2 items-center">
-          <button
-            className="px-4 py-2 rounded-lg bg-emerald-600 text-white font-medium hover:bg-emerald-700 disabled:opacity-50"
-            onClick={runOpenRouter}
-            disabled={loading || !file}
-          >
-            {loading ? t.running : t.runAI}
-          </button>
+          {aiEnabled ? (
+            <button
+              className="px-4 py-2 rounded-lg bg-emerald-600 text-white font-medium hover:bg-emerald-700 disabled:opacity-50"
+              onClick={runOpenRouter}
+              disabled={loading || !file}
+            >
+              {loading ? t.running : t.runAI}
+            </button>
+          ) : null}
+
           <button
             className="px-4 py-2 rounded-lg bg-gray-100 text-gray-900 font-medium hover:bg-gray-200 border disabled:opacity-50"
             onClick={runBrowserOcr}
@@ -527,25 +531,16 @@ export default function Home() {
 
         <div className="mt-4 p-4 rounded-xl border bg-white">
           <div className="font-medium">{t.localApiTitle}</div>
-          <div className="mt-2 flex flex-wrap gap-3 items-center text-sm">
-            <label className="flex items-center gap-2">
-              <span className="text-gray-600">{t.localApiUrl}</span>
-              <input
-                className="border rounded px-2 py-1 bg-white w-[360px] max-w-full"
-                value={localApi.url}
-                onChange={(e) => setLocalApi((p) => ({ ...p, url: e.target.value }))}
-                placeholder="https://xxxx.trycloudflare.com"
-              />
-            </label>
-            <label className="flex items-center gap-2">
-              <span className="text-gray-600">{t.localApiKey}</span>
-              <input
-                className="border rounded px-2 py-1 bg-white w-[240px] max-w-full"
-                value={localApi.key}
-                onChange={(e) => setLocalApi((p) => ({ ...p, key: e.target.value }))}
-                placeholder="…"
-              />
-            </label>
+          <div className="mt-2 text-sm text-gray-700">
+            {localApiUrl ? (
+              <>
+                URL: <code className="text-xs bg-gray-50 border rounded px-2 py-1">{localApiUrl}</code>
+              </>
+            ) : (
+              <>
+                Not configured. Go to <a className="underline text-indigo-700" href="/admin">/admin</a>.
+              </>
+            )}
           </div>
           <div className="mt-2 text-xs text-gray-500">
             API runs on your PC (tesseract). Tunnel gives you HTTPS without a fixed IP.
