@@ -597,17 +597,17 @@ export default function Home() {
 
           <div className="mt-2">
             <button
-              className="px-4 py-2 rounded-lg bg-indigo-600 text-white font-medium hover:bg-indigo-700 disabled:opacity-50"
+              className="px-4 py-2 rounded-lg bg-gray-200 text-gray-700 font-medium disabled:opacity-50"
               onClick={applyCryptoTxid}
-              disabled={!quota || !donations}
+              disabled={true}
               type="button"
+              title="Verification not implemented yet"
             >
-              {t.applyTxid}
+              Check
             </button>
           </div>
 
           {notice ? <div className="mt-2 text-sm text-gray-700">{notice}</div> : null}
-          <div className="mt-2 text-xs text-gray-500">{t.donateNote}</div>
         </div>
 
         {resp && !resp.ok ? (
@@ -624,23 +624,35 @@ export default function Home() {
 
             <div className="mt-2 flex flex-wrap gap-2">
               <button
-                className="px-3 py-2 rounded-lg bg-white border hover:bg-gray-50 disabled:opacity-50"
+                className={
+                  resp.parsed.confidence?.kid === 'high'
+                    ? 'px-3 py-2 rounded-lg bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-50'
+                    : 'px-3 py-2 rounded-lg bg-white border hover:bg-gray-50 disabled:opacity-50'
+                }
                 onClick={() => copy(resp.parsed.kid)}
-                disabled={!resp.parsed.kid}
+                disabled={!resp.parsed.kid || resp.parsed.confidence?.kid === 'low'}
               >
                 {t.copyKID}
               </button>
               <button
-                className="px-3 py-2 rounded-lg bg-white border hover:bg-gray-50 disabled:opacity-50"
+                className={
+                  resp.parsed.confidence?.konto === 'high'
+                    ? 'px-3 py-2 rounded-lg bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-50'
+                    : 'px-3 py-2 rounded-lg bg-white border hover:bg-gray-50 disabled:opacity-50'
+                }
                 onClick={() => copy(resp.parsed.konto)}
-                disabled={!resp.parsed.konto}
+                disabled={!resp.parsed.konto || resp.parsed.confidence?.konto === 'low'}
               >
                 {t.copyKonto}
               </button>
               <button
-                className="px-3 py-2 rounded-lg bg-white border hover:bg-gray-50 disabled:opacity-50"
+                className={
+                  resp.parsed.confidence?.iban === 'high'
+                    ? 'px-3 py-2 rounded-lg bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-50'
+                    : 'px-3 py-2 rounded-lg bg-white border hover:bg-gray-50 disabled:opacity-50'
+                }
                 onClick={() => copy(resp.parsed.iban)}
-                disabled={!resp.parsed.iban}
+                disabled={!resp.parsed.iban || resp.parsed.confidence?.iban === 'low'}
               >
                 {t.copyIBAN}
               </button>

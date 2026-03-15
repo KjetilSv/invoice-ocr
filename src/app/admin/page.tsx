@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
+import { getAdminPassword, isAdminAuthed } from '@/lib/adminAuth';
 import { loadAdminPrefs, saveAdminPrefs, type AdminPrefs } from '@/lib/adminPrefs';
 
 export default function AdminPage() {
@@ -18,6 +19,13 @@ export default function AdminPage() {
 
   useEffect(() => {
     setMounted(true);
+
+    const pw = getAdminPassword();
+    if (pw && !isAdminAuthed()) {
+      window.location.href = '/admin/login';
+      return;
+    }
+
     setPrefs(loadAdminPrefs());
   }, []);
 
