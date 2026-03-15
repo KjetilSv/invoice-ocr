@@ -58,6 +58,7 @@ export default function Home() {
   const [useLocalApi, setUseLocalApi] = useState(false);
   const [localApiUrl, setLocalApiUrl] = useState('');
   const [localApiKey, setLocalApiKey] = useState('');
+  const [donationsEnabled, setDonationsEnabled] = useState(false);
   const [donateSol, setDonateSol] = useState('');
   const [donateAvax, setDonateAvax] = useState('');
   const [donateDfk, setDonateDfk] = useState('');
@@ -167,6 +168,7 @@ export default function Home() {
     setUseLocalApi(!!admin.useLocalApi);
     setLocalApiUrl(admin.localApiUrl || '');
     setLocalApiKey(admin.localApiKey || '');
+    setDonationsEnabled(!!admin.donationsEnabled);
     setDonateSol(admin.donateSol || '');
     setDonateAvax(admin.donateAvax || '');
     setDonateDfk(admin.donateDfk || '');
@@ -544,71 +546,73 @@ export default function Home() {
         </div>
 
 
-        <div className="mt-4 p-4 rounded-xl border bg-white">
-          <div className="font-medium">{t.donateCryptoTitle}</div>
-          <div className="mt-1 text-xs text-gray-500">
-            Adresse settes i <a className="underline text-indigo-700" href="/admin">/admin</a>.
-          </div>
-          <div className="mt-2 flex flex-wrap items-center gap-3 text-sm">
-            <label className="flex items-center gap-2">
-              <span className="text-gray-600">{t.donateChain}</span>
-              <select
-                className="border rounded px-2 py-1 bg-white"
-                value={donateChain}
-                onChange={(e) => setDonateChain(e.target.value as any)}
+        {donationsEnabled ? (
+          <div className="mt-4 p-4 rounded-xl border bg-white">
+            <div className="font-medium">{t.donateCryptoTitle}</div>
+            <div className="mt-1 text-xs text-gray-500">
+              Adresse settes i <a className="underline text-indigo-700" href="/admin">/admin</a>.
+            </div>
+            <div className="mt-2 flex flex-wrap items-center gap-3 text-sm">
+              <label className="flex items-center gap-2">
+                <span className="text-gray-600">{t.donateChain}</span>
+                <select
+                  className="border rounded px-2 py-1 bg-white"
+                  value={donateChain}
+                  onChange={(e) => setDonateChain(e.target.value as any)}
+                >
+                  <option value="sol">SOL</option>
+                  <option value="avax">AVAX</option>
+                  <option value="dfk">DFK Chain</option>
+                </select>
+              </label>
+
+              <button
+                className="px-3 py-1.5 rounded-lg bg-gray-100 border hover:bg-gray-200"
+                onClick={() => copyText(donateAddr)}
+                type="button"
               >
-                <option value="sol">SOL</option>
-                <option value="avax">AVAX</option>
-                <option value="dfk">DFK Chain</option>
-              </select>
-            </label>
+                {t.copyAddress}
+              </button>
+            </div>
 
-            <button
-              className="px-3 py-1.5 rounded-lg bg-gray-100 border hover:bg-gray-200"
-              onClick={() => copyText(donateAddr)}
-              type="button"
-            >
-              {t.copyAddress}
-            </button>
-          </div>
+            <div className="mt-3 flex flex-wrap items-center gap-2 text-sm">
+              <label className="flex items-center gap-2">
+                <span className="text-gray-600">{t.txid}</span>
+                <input
+                  className="border rounded px-2 py-1 bg-white w-[360px] max-w-full"
+                  value={donateTxid}
+                  onChange={(e) => setDonateTxid(e.target.value)}
+                  placeholder="0x… / …"
+                />
+              </label>
 
-          <div className="mt-3 flex flex-wrap items-center gap-2 text-sm">
-            <label className="flex items-center gap-2">
-              <span className="text-gray-600">{t.txid}</span>
-              <input
-                className="border rounded px-2 py-1 bg-white w-[360px] max-w-full"
-                value={donateTxid}
-                onChange={(e) => setDonateTxid(e.target.value)}
-                placeholder="0x… / …"
-              />
-            </label>
+              {donateTxid.trim() ? (
+                <a
+                  className="text-sm text-indigo-700 underline"
+                  href={explorerTxUrl(donateChain, donateTxid) ?? '#'}
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  explorer
+                </a>
+              ) : null}
+            </div>
 
-            {donateTxid.trim() ? (
-              <a
-                className="text-sm text-indigo-700 underline"
-                href={explorerTxUrl(donateChain, donateTxid) ?? '#'}
-                target="_blank"
-                rel="noreferrer"
+            <div className="mt-2">
+              <button
+                className="px-4 py-2 rounded-lg bg-gray-200 text-gray-700 font-medium disabled:opacity-50"
+                onClick={applyCryptoTxid}
+                disabled={true}
+                type="button"
+                title="Verification not implemented yet"
               >
-                explorer
-              </a>
-            ) : null}
-          </div>
+                Check
+              </button>
+            </div>
 
-          <div className="mt-2">
-            <button
-              className="px-4 py-2 rounded-lg bg-gray-200 text-gray-700 font-medium disabled:opacity-50"
-              onClick={applyCryptoTxid}
-              disabled={true}
-              type="button"
-              title="Verification not implemented yet"
-            >
-              Check
-            </button>
+            {notice ? <div className="mt-2 text-sm text-gray-700">{notice}</div> : null}
           </div>
-
-          {notice ? <div className="mt-2 text-sm text-gray-700">{notice}</div> : null}
-        </div>
+        ) : null}
 
         {resp && !resp.ok ? (
           <div className="mt-3 text-sm text-red-700 bg-red-50 border border-red-200 rounded-lg p-3">

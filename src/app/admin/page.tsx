@@ -11,6 +11,7 @@ export default function AdminPage() {
     useLocalApi: false,
     localApiUrl: '',
     localApiKey: '',
+    donationsEnabled: false,
     donateSol: '',
     donateAvax: '',
     donateDfk: '',
@@ -42,9 +43,23 @@ export default function AdminPage() {
             <h1 className="text-2xl font-semibold tracking-tight">Admin</h1>
             <p className="mt-1 text-sm text-gray-600">Local settings stored in this browser (localStorage).</p>
           </div>
-          <Link className="text-sm underline text-indigo-700" href="/app">
-            ← Back to app
-          </Link>
+          <div className="flex gap-3">
+            <button
+              className="text-sm underline text-gray-700"
+              type="button"
+              onClick={() => {
+                try {
+                  localStorage.removeItem('invoiceocr_admin_authed_v1');
+                } catch {}
+                window.location.href = '/admin/login';
+              }}
+            >
+              Lock
+            </button>
+            <Link className="text-sm underline text-indigo-700" href="/app">
+              ← Back to app
+            </Link>
+          </div>
         </div>
 
         <div className="mt-6 p-5 rounded-xl border bg-white shadow-sm">
@@ -108,8 +123,21 @@ export default function AdminPage() {
         </div>
 
         <div className="mt-4 p-5 rounded-xl border bg-white shadow-sm">
-          <h2 className="font-semibold">Donation addresses</h2>
-          <p className="mt-1 text-sm text-gray-600">Shown/used by the donate section in the app.</p>
+          <h2 className="font-semibold">Donations</h2>
+          <p className="mt-1 text-sm text-gray-600">Enable/disable the donate section, and set addresses.</p>
+
+          <label className="mt-3 flex items-center gap-3 text-sm">
+            <input
+              type="checkbox"
+              checked={prefs.donationsEnabled}
+              onChange={(e) => setPrefs((p) => ({ ...p, donationsEnabled: e.target.checked }))}
+            />
+            Show donations in app
+          </label>
+
+          <div className="mt-3 text-xs text-gray-500">
+            Tip: keep this off until on-chain verification is implemented.
+          </div>
 
           <div className="mt-3 grid gap-3">
             <label className="grid gap-1 text-sm">

@@ -4,6 +4,8 @@ export type AdminPrefs = {
   useLocalApi: boolean;
   localApiUrl: string;
   localApiKey: string;
+  // Donations
+  donationsEnabled: boolean;
   // Donation addresses (configurable via /admin)
   donateSol: string;
   donateAvax: string;
@@ -21,6 +23,7 @@ export function loadAdminPrefs(): AdminPrefs {
         useLocalApi: false,
         localApiUrl: '',
         localApiKey: '',
+        donationsEnabled: false,
         donateSol: '4NJYnpk4eLfuigUB2tbdZTY2jy45zTL8eptp1MFx8wfS',
         donateAvax: '0xab272ADCc18534a52474979aC6a6AF237553FA0e',
         donateDfk: '0xab272ADCc18534a52474979aC6a6AF237553FA0e',
@@ -31,6 +34,7 @@ export function loadAdminPrefs(): AdminPrefs {
       useLocalApi: !!p.useLocalApi,
       localApiUrl: typeof p.localApiUrl === 'string' ? p.localApiUrl : '',
       localApiKey: typeof p.localApiKey === 'string' ? p.localApiKey : '',
+      donationsEnabled: !!p.donationsEnabled,
       donateSol: typeof p.donateSol === 'string' ? p.donateSol : '4NJYnpk4eLfuigUB2tbdZTY2jy45zTL8eptp1MFx8wfS',
       donateAvax: typeof p.donateAvax === 'string' ? p.donateAvax : '0xab272ADCc18534a52474979aC6a6AF237553FA0e',
       donateDfk: typeof p.donateDfk === 'string' ? p.donateDfk : '0xab272ADCc18534a52474979aC6a6AF237553FA0e',
@@ -41,6 +45,7 @@ export function loadAdminPrefs(): AdminPrefs {
       useLocalApi: false,
       localApiUrl: '',
       localApiKey: '',
+      donationsEnabled: false,
       donateSol: '4NJYnpk4eLfuigUB2tbdZTY2jy45zTL8eptp1MFx8wfS',
       donateAvax: '0xab272ADCc18534a52474979aC6a6AF237553FA0e',
       donateDfk: '0xab272ADCc18534a52474979aC6a6AF237553FA0e',
