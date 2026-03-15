@@ -27,7 +27,7 @@ type Parsed = {
 };
 
 type Resp =
-  | { ok: true; parsed: Parsed; rawText: string; mode: 'openrouter' | 'browser-ocr' }
+  | { ok: true; parsed: Parsed; rawText: string; mode: 'openrouter' | 'browser-ocr' | 'local-api' }
   | { ok: false; message: string };
 
 function parseCandidates(text: string): Parsed {
@@ -368,7 +368,7 @@ export default function Home() {
       if (!data?.ok) throw new Error(data?.message || 'Local API failed');
 
       // Map local API response to Parsed shape.
-      setResp({ ok: true, parsed: data.parsed, rawText: data.rawText || '', mode: 'browser-ocr' });
+      setResp({ ok: true, parsed: data.parsed, rawText: data.rawText || '', mode: 'local-api' });
     } catch (e: any) {
       setResp({ ok: false, message: 'Local API failed: ' + String(e?.message || e) });
     } finally {
