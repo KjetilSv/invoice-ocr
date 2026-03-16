@@ -1,57 +1,74 @@
+import Link from 'next/link';
+import LangGate from '@/components/LangGate';
+
 export const metadata = {
   title: 'Privacy — Invoice OCR',
 };
 
 export default function PrivacyPage() {
   return (
-    <main className="min-h-screen p-6 max-w-2xl mx-auto">
-      <h1 className="text-2xl font-semibold">Privacy</h1>
+    <main className="min-h-screen bg-gradient-to-b from-slate-50 to-white">
+      <div className="max-w-2xl mx-auto p-6">
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <h1 className="text-2xl font-semibold">Privacy</h1>
+            <p className="mt-1 text-sm text-gray-600 lang lang-en">How invoice data is handled.</p>
+            <p className="mt-1 text-sm text-gray-600 lang lang-no">Hvordan fakturadata behandles.</p>
+          </div>
+          <LangGate compact />
+        </div>
 
-      <p className="mt-3 text-gray-700">
-        Kortversjon: vi prøver å holde dette <b>privacy-first</b>. Denne siden forklarer hva som skjer med data når du
-        scanner en faktura.
-      </p>
+        <div className="mt-6 p-5 rounded-xl border bg-white shadow-sm">
+          <div className="lang lang-en">
+            <p className="text-gray-700">
+              Short version: we try to keep this <b>privacy-first</b>. The free OCR mode runs locally in your browser.
+            </p>
 
-      <h2 className="mt-6 text-xl font-semibold">Hva vi lagrer</h2>
-      <ul className="mt-2 list-disc pl-6 text-gray-700 space-y-1">
-        <li>
-          <b>Vi lagrer ikke</b> fakturabilder permanent på server i denne MVP-en.
-        </li>
-        <li>
-          Vi lagrer en enkel <b>dagskvote</b> i browseren din (localStorage): antall gratis/bonus scans igjen i dag, og om
-          du har brukt "I donated" i dag.
-        </li>
-      </ul>
+            <h2 className="mt-6 text-lg font-semibold">What we store</h2>
+            <ul className="mt-2 list-disc pl-6 text-gray-700 space-y-1">
+              <li>We do not store your invoice files permanently on the server (MVP).</li>
+              <li>
+                We store simple settings in your browser (localStorage), like language and admin preferences.
+              </li>
+            </ul>
 
-      <h2 className="mt-6 text-xl font-semibold">Når du bruker “Run (AI)”</h2>
-      <p className="mt-2 text-gray-700">
-        Bildet sendes til en AI-modell via <b>OpenRouter</b> for å trekke ut betalingsfelter. Det betyr at bildet
-        behandles av en tredjepartstjeneste for å produsere svaret.
-      </p>
-      <p className="mt-2 text-gray-700">
-        Hvis du ikke ønsker å sende fakturaen til en ekstern tjeneste, bruk <b>Run (free OCR)</b> i stedet.
-      </p>
+            <h2 className="mt-6 text-lg font-semibold">AI mode</h2>
+            <p className="mt-2 text-gray-700">
+              If you enable AI mode, images may be sent to a third-party model provider. Keep it off if you prefer
+              everything to stay local.
+            </p>
+          </div>
 
-      <h2 className="mt-6 text-xl font-semibold">Når du bruker “Run (free OCR)”</h2>
-      <p className="mt-2 text-gray-700">
-        OCR kjøres i nettleseren din med <code>tesseract.js</code>. Bildet sendes ikke til server for OCR.
-      </p>
+          <div className="lang lang-no">
+            <p className="text-gray-700">
+              Kortversjon: vi prøver å holde dette <b>privacy-first</b>. Gratis OCR kjører lokalt i nettleseren.
+            </p>
 
-      <h2 className="mt-6 text-xl font-semibold">Sikkerhet</h2>
-      <ul className="mt-2 list-disc pl-6 text-gray-700 space-y-1">
-        <li>Unngå å laste opp dokumenter du ikke har lov til å dele.</li>
-        <li>Ikke bruk appen til sensitive dokumenter hvis du ikke er komfortabel med tredjeparts AI-prosessering.</li>
-      </ul>
+            <h2 className="mt-6 text-lg font-semibold">Hva vi lagrer</h2>
+            <ul className="mt-2 list-disc pl-6 text-gray-700 space-y-1">
+              <li>Vi lagrer ikke fakturafiler permanent på server (MVP).</li>
+              <li>
+                Vi lagrer noen enkle innstillinger i nettleseren (localStorage), f.eks. språk og admin-innstillinger.
+              </li>
+            </ul>
 
-      <h2 className="mt-6 text-xl font-semibold">Endringer</h2>
-      <p className="mt-2 text-gray-700">
-        Denne policyen kan endres når vi går fra MVP til en mer “ordentlig” betalings- og logging-løsning.
-      </p>
+            <h2 className="mt-6 text-lg font-semibold">AI-modus</h2>
+            <p className="mt-2 text-gray-700">
+              Hvis du aktiverer AI-modus kan bilder sendes til en tredjeparts modell-provider. Hold den av hvis du vil at
+              alt skal være lokalt.
+            </p>
+          </div>
+        </div>
 
-      <p className="mt-8 text-sm text-gray-500 flex gap-3">
-        <a className="underline" href="/">← Home</a>
-        <a className="underline" href="/app">Open app</a>
-      </p>
+        <div className="mt-8 text-sm text-gray-500 flex gap-3">
+          <Link className="underline" href="/">
+            ← Home
+          </Link>
+          <Link className="underline" href="/app">
+            Open app
+          </Link>
+        </div>
+      </div>
     </main>
   );
 }

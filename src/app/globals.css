@@ -24,3 +24,7 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+/* Language gating: render both languages in HTML, hide via html[data-lang]. */
+html[data-lang='en'] .lang-no { display: none; }
+html[data-lang='no'] .lang-en { display: none; }
