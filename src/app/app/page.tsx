@@ -75,6 +75,46 @@ async function downscaleToJpeg(file: File, maxW = 1600): Promise<File> {
   return new File([outBlob], file.name.replace(/\.[a-z0-9]+$/i, '') + '.jpg', { type: 'image/jpeg' });
 }
 
+async function pdfToJpeg(file: File, maxW = 1600): Promise<File> {
+  // Render first page of the PDF to a JPEG for OCR.
+  const pdfjs = await import('pdfjs-dist/legacy/build/pdf.mjs');
+
+  // Worker: bundle-local
+  // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+  // @ts-ignore
+  pdfjs.GlobalWorkerOptions.workerSrc = new URL('pdfjs-dist/legacy/build/pdf.worker.min.mjs', import.meta.url).toString();
+
+  const data = new Uint8Array(await file.arrayBuffer());
+  const doc = await pdfjs.getDocument({ data }).promise;
+  const page = await doc.getPage(1);
+
+  const vp1 = page.getViewport({ scale: 1 });
+  const scale = Math.min(2.0, maxW / (vp1.width || maxW));
+  const viewport = page.getViewport({ scale });
+
+  const canvas = document.createElement('canvas');
+  canvas.width = Math.ceil(viewport.width);
+  canvas.height = Math.ceil(viewport.height);
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return file;
+
+  // pdfjs types differ between builds; use a minimal-compatible signature.
+  // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+  // @ts-ignore
+  await page.render({ canvasContext: ctx, canvas, viewport }).promise;
+
+  const outBlob: Blob | null = await new Promise((resolve) => canvas.toBlob(resolve, 'image/jpeg', 0.9));
+  if (!outBlob) return file;
+
+  return new File([outBlob], file.name.replace(/\.[a-z0-9]+$/i, '') + '-p1.jpg', { type: 'image/jpeg' });
+}
+
+async function toOcrImage(file: File, maxW = 1600): Promise<File> {
+  const isPdf = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
+  if (isPdf) return await pdfToJpeg(file, maxW);
+  return await downscaleToJpeg(file, maxW);
+}
+
 export default function Home() {
   const [quota, setQuota] = useState<QuotaState | null>(null);
   const [file, setFile] = useState<File | null>(null);
@@ -235,7 +275,7 @@ export default function Home() {
     setResp(null);
     setStatusLine('Preparing image…');
     try {
-      const scaled = await downscaleToJpeg(file, 1600);
+      const scaled = await toOcrImage(file, 1600);
       setStatusLine('Sending to AI…');
 
       const fd = new FormData();
@@ -263,7 +303,7 @@ export default function Home() {
     setResp(null);
     setStatusLine('Preparing image…');
     try {
-      const scaled = await downscaleToJpeg(file, 1600);
+      const scaled = await toOcrImage(file, 1600);
       setStatusLine('Running OCR in browser…');
 
       const worker = await createWorker('eng');
@@ -290,7 +330,7 @@ export default function Home() {
     setResp(null);
     setStatusLine('Preparing image…');
     try {
-      const scaled = await downscaleToJpeg(file, 1600);
+      const scaled = await toOcrImage(file, 1600);
       setStatusLine('Calling Local API…');
 
       const fd = new FormData();
@@ -414,7 +454,7 @@ export default function Home() {
               id="file-camera"
               className="hidden"
               type="file"
-              accept="image/*"
+              accept="image/*,application/pdf"
               capture="environment"
               onChange={(e) => {
                 setFile(e.target.files?.[0] ?? null);
@@ -429,7 +469,7 @@ export default function Home() {
               id="file-picker"
               className="hidden"
               type="file"
-              accept="image/*"
+              accept="image/*,application/pdf"
               onChange={(e) => {
                 setFile(e.target.files?.[0] ?? null);
                 setResp(null);
