@@ -385,22 +385,22 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white p-6">
       <div className="max-w-2xl mx-auto">
-        <div className="flex items-start justify-between gap-4">
-          <div>
-            <h1 className="text-3xl font-semibold tracking-tight">{t.title}</h1>
-            <p className="text-sm text-gray-600 mt-1">{t.tagline}</p>
+        <div className="mt-2 p-4 sm:p-5 border bg-white rounded-xl shadow-sm">
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <h1 className="text-4xl font-semibold tracking-tight font-mono">{t.title}</h1>
+              <p className="text-sm text-gray-600 mt-1">{t.tagline}</p>
+            </div>
+            <div className="hidden sm:block text-xs text-gray-500 mt-2">v0.1</div>
           </div>
-          <div className="hidden sm:block text-xs text-gray-500 mt-2">v0.1</div>
-        </div>
 
-        {toast ? (
-          <div className="mt-3 inline-flex items-center gap-2 text-sm bg-emerald-50 border border-emerald-200 text-emerald-800 px-3 py-1.5 rounded-lg">
-            {toast}
-          </div>
-        ) : null}
+          {toast ? (
+            <div className="mt-3 inline-flex items-center gap-2 text-sm bg-emerald-50 border border-emerald-200 text-emerald-800 px-3 py-1.5 rounded-lg">
+              {toast}
+            </div>
+          ) : null}
 
-        <div className="mt-5 p-4 sm:p-5 border bg-white rounded-xl shadow-sm">
-          <div className="p-3 rounded-lg bg-slate-50 border">
+          <div className="mt-4 p-3 rounded-lg bg-slate-50 border">
             <div className="text-sm font-medium text-slate-900">{t.howtoTitle}</div>
             <div className="mt-1 text-sm text-slate-700">{t.howto1}</div>
             <div className="text-sm text-slate-700">{t.howto2}</div>
