@@ -81,6 +81,7 @@ export default function Home() {
   const [loading, setLoading] = useState(false);
   const [resp, setResp] = useState<Resp | null>(null);
   const [statusLine, setStatusLine] = useState<string | null>(null);
+  const [toast, setToast] = useState<string | null>(null);
   const [prefs, setPrefs] = useState<Prefs>({ preset: 'auto', lang: 'auto' });
   const [aiEnabled, setAiEnabled] = useState(false);
   const [useLocalApi, setUseLocalApi] = useState(false);
@@ -106,12 +107,19 @@ export default function Home() {
     const no = {
       chooseImage: 'Velg bilde',
       title: 'Invoice OCR',
-      tagline: 'Super enkel: ta bilde / last opp → copy betalingsfelt. Vi lagrer ingenting (MVP).',
+      tagline: 'Ta bilde av en faktura → få KID/konto/IBAN klart til kopiering. Vi lagrer ingenting.',
       noFile: 'Ingen fil valgt',
       runAI: 'Kjør (AI)',
       runFree: 'Kjør',
       running: 'Kjører…',
       scansLeft: 'Scans igjen i dag',
+      howtoTitle: 'Slik bruker du den',
+      howto1: '1) Ta bilde eller velg bilde',
+      howto2: '2) Trykk Kjør',
+      howto3: '3) Trykk Kopier',
+      advanced: 'Avansert',
+      tipBetter: 'Tips: For bedre treff kan du aktivere "Use Local API" i /admin.',
+      copied: 'Kopiert',
       preset: 'Preset',
       language: 'Språk',
       saved: '(lagres i denne browseren)',
@@ -140,12 +148,19 @@ export default function Home() {
     const en = {
       chooseImage: 'Choose image',
       title: 'Invoice OCR',
-      tagline: "Super simple: take a photo / upload → copy payment fields. We don't store anything (MVP).",
+      tagline: 'Take a photo of an invoice → copy KID/account/IBAN in one tap. We don’t store anything.',
       noFile: 'No file selected',
       runAI: 'Run (AI)',
       runFree: 'Run',
       running: 'Running…',
       scansLeft: 'Scans left today',
+      howtoTitle: 'How it works',
+      howto1: '1) Take a photo or choose an image',
+      howto2: '2) Tap Run',
+      howto3: '3) Tap Copy',
+      advanced: 'Advanced',
+      tipBetter: 'Tip: For better results, enable “Use Local API” in /admin.',
+      copied: 'Copied',
       preset: 'Preset',
       language: 'Language',
       saved: '(saved in this browser)',
@@ -304,6 +319,8 @@ export default function Home() {
   async function copy(s: string | null) {
     if (!s) return;
     await navigator.clipboard.writeText(s);
+    setToast(t.copied);
+    window.setTimeout(() => setToast(null), 1200);
   }
 
 
@@ -376,7 +393,21 @@ export default function Home() {
           <div className="hidden sm:block text-xs text-gray-500 mt-2">v0.1</div>
         </div>
 
+        {toast ? (
+          <div className="mt-3 inline-flex items-center gap-2 text-sm bg-emerald-50 border border-emerald-200 text-emerald-800 px-3 py-1.5 rounded-lg">
+            {toast}
+          </div>
+        ) : null}
+
         <div className="mt-5 p-4 sm:p-5 border bg-white rounded-xl shadow-sm">
+          <div className="p-3 rounded-lg bg-slate-50 border">
+            <div className="text-sm font-medium text-slate-900">{t.howtoTitle}</div>
+            <div className="mt-1 text-sm text-slate-700">{t.howto1}</div>
+            <div className="text-sm text-slate-700">{t.howto2}</div>
+            <div className="text-sm text-slate-700">{t.howto3}</div>
+            {!useLocalApi ? <div className="mt-2 text-xs text-slate-500">{t.tipBetter}</div> : null}
+          </div>
+
           <div className="flex flex-wrap gap-2 items-center">
             {/* Camera capture input (mobile tends to open camera UI) */}
             <input
